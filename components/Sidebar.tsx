@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import ReIngestButton from './ReIngestButton'
+import ChatHistory from './ChatHistory'
 
 interface Repo {
   id: number
@@ -17,10 +18,11 @@ interface Repo {
 interface SidebarProps {
   activeRepoId: number | null
   onSelectRepo: (id: number, name: string) => void
+  onRestoreSession: (sessionId: number, repoId: number, repoName: string) => void
   username: string
 }
 
-export default function Sidebar({ activeRepoId, onSelectRepo, username }: SidebarProps) {
+export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, username }: SidebarProps) {
   const [repos, setRepos] = useState<Repo[]>([])
 
   async function fetchRepos() {
@@ -129,6 +131,9 @@ export default function Sidebar({ activeRepoId, onSelectRepo, username }: Sideba
           </button>
         ))}
       </div>
+
+      {/* Chat history */}
+      <ChatHistory onRestoreSession={onRestoreSession} />
 
       {/* User footer */}
       <div

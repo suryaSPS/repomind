@@ -10,6 +10,7 @@ interface ChatInterfaceProps {
   repoId: number
   repoName: string
   username: string
+  initialSessionId?: number | null
 }
 
 const STARTER_QUESTIONS = [
@@ -20,10 +21,22 @@ const STARTER_QUESTIONS = [
   'Find all API endpoints and what they do',
 ]
 
-export default function ChatInterface({ repoId, repoName, username }: ChatInterfaceProps) {
+export default function ChatInterface({ repoId, repoName, username, initialSessionId }: ChatInterfaceProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [sessionId, setSessionId] = useState<number | null>(null)
+  const [sessionId, setSessionId] = useState<number | null>(initialSessionId ?? null)
+
+  // Load prior messages when restoring a session
+  useEffect(() => {
+    if (!initialSessionId) return
+    fetch(`/api/sessions/${initialSessionId}/messages`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.messages?.length) {
+          // We'll rely on useChat's initialMessages
+        }
+      })
+  }, [initialSessionId])
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',

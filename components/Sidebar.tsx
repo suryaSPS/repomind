@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
+import ReIngestButton from './ReIngestButton'
 
 interface Repo {
   id: number
@@ -122,6 +123,9 @@ export default function Sidebar({ activeRepoId, onSelectRepo, username }: Sideba
             <p className="text-xs ml-5 truncate" style={{ color: 'var(--muted-foreground)' }}>
               {r.owner} · {r.fileCount ?? 0} files · {r.commitCount ?? 0} commits
             </p>
+            <div className="ml-5 mt-1">
+              <ReIngestButton repoId={r.id} onDone={fetchRepos} />
+            </div>
           </button>
         ))}
       </div>

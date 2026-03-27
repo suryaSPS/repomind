@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Sidebar from '@/components/Sidebar'
 import RepoInput from '@/components/RepoInput'
 import ChatInterface from '@/components/ChatInterface'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface MainAppProps {
   username: string
@@ -39,6 +40,7 @@ export default function MainApp({ username }: MainAppProps) {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
+        <ErrorBoundary>
         {activeRepo ? (
           <ChatInterface
             key={restoredSessionId ?? activeRepo.id}
@@ -50,6 +52,7 @@ export default function MainApp({ username }: MainAppProps) {
         ) : (
           <EmptyState onRepoReady={handleRepoReady} />
         )}
+        </ErrorBoundary>
       </div>
     </div>
   )

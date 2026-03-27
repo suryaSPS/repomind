@@ -137,6 +137,7 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
             role={m.role as 'user' | 'assistant'}
             content={m.content}
             username={username}
+            repoId={repoId}
           />
         ))}
 

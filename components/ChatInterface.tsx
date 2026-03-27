@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import MessageBubble, { TypingIndicator } from './MessageBubble'
 import ExportChatButton from './ExportChatButton'
+import ShortcutHint from './ShortcutHint'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 interface ChatInterfaceProps {
   repoId: number
@@ -51,6 +53,19 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  useKeyboardShortcuts({
+    onFocusInput: () => textareaRef.current?.focus(),
+    onNewChat: () => {
+      setSessionId(null)
+      window.location.reload()
+    },
+    onEscape: () => {
+      if (document.activeElement === textareaRef.current) {
+        textareaRef.current?.blur()
+      }
+    },
+  })
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -211,9 +226,12 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
             )}
           </Button>
         </form>
-        <p className="text-xs mt-2 text-center" style={{ color: 'var(--muted-foreground)' }}>
-          RepoMind can make mistakes. Always verify with cited sources.
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <ShortcutHint />
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Always verify with cited sources.
+          </p>
+        </div>
       </div>
     </div>
   )

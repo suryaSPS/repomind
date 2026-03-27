@@ -157,8 +157,14 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
 
       {/* Error */}
       {isError && (
-        <div className="mt-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg px-3 py-2">
-          {progress?.error ?? 'Something went wrong'}
+        <div className="mt-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg px-3 py-2 flex items-start justify-between gap-3">
+          <span>{progress?.error ?? 'Something went wrong'}</span>
+          <button
+            onClick={handleIngest}
+            className="shrink-0 text-xs px-2 py-1 rounded border border-red-800 hover:bg-red-900/40 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

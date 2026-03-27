@@ -139,7 +139,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
         <div className="mt-3">
           <div className="flex justify-between items-center mb-1.5">
             <span className="text-xs text-slate-400">{progress.stage}</span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 font-mono truncate max-w-[220px] text-right">
               {progress.detail ?? `${progress.percent}%`}
             </span>
           </div>

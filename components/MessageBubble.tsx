@@ -1,18 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import CitationModal from './CitationModal'
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant'
   content: string
   username?: string
+  repoId?: number
 }
 
 // Regex to find citations like `src/auth/jwt.ts:45-67` or `src/auth/jwt.ts:45`
 const CITATION_REGEX = /`([^`]+\.[a-z]+:\d+(?:-\d+)?)`/g
 
 // Render markdown-lite: bold, code, citations
-function renderContent(content: string) {
+function renderContent(content: string, repoId?: number) {
   // Split by code blocks first
   const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g
   const parts: React.ReactNode[] = []
@@ -96,7 +98,7 @@ function renderContent(content: string) {
           const isCitation = /[^`]+\.[a-z]+:\d+/.test(lm[1])
           if (isCitation) {
             parts.push(
-              <CitationChip key={`cite-${lm.index}`} citation={lm[1]} />
+              <CitationChip key={`cite-${lm.index}`} citation={lm[1]} repoId={repoId} />
             )
           } else {
             lineParts.push(
@@ -128,34 +130,57 @@ function renderContent(content: string) {
   return parts
 }
 
-function CitationChip({ citation }: { citation: string }) {
+function CitationChip({ citation, repoId }: { citation: string; repoId?: number }) {
   const [copied, setCopied] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
-  function handleCopy() {
-    navigator.clipboard.writeText(citation)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+  function handleClick() {
+    if (repoId) {
+      setModalOpen(true)
+    } else {
+      navigator.clipboard.writeText(citation)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }
   }
 
   return (
-    <button
-      onClick={handleCopy}
-      title={`Copy: ${citation}`}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono mx-0.5 transition-colors"
-      style={{
-        background: '#1e1e3a',
-        color: '#818cf8',
-        border: '1px solid #3730a3',
-      }}
-    >
-      <span>📄</span>
-      <span>{citation}</span>
-      {copied && <span className="text-green-400">✓</span>}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        title={repoId ? `Open ${citation}` : `Copy: ${citation}`}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono mx-0.5 transition-all"
+        style={{
+          background: '#1e1e3a',
+          color: '#818cf8',
+          border: '1px solid #3730a3',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#2d2d5a'
+          e.currentTarget.style.borderColor = '#6366f1'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#1e1e3a'
+          e.currentTarget.style.borderColor = '#3730a3'
+        }}
+      >
+        <span>📄</span>
+        <span>{citation}</span>
+        {copied && <span className="text-green-400">✓</span>}
+        {repoId && <span className="text-indigo-400 opacity-60">↗</span>}
+      </button>
+      {modalOpen && repoId && (
+        <CitationModal
+          citation={citation}
+          repoId={repoId}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
   )
 }
 
-export default function MessageBubble({ role, content, username }: MessageBubbleProps) {
+export default function MessageBubble({ role, content, username, repoId }: MessageBubbleProps) {
   const isUser = role === 'user'
 
   if (isUser) {
@@ -187,7 +212,7 @@ export default function MessageBubble({ role, content, username }: MessageBubble
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <div className="prose prose-invert max-w-none">
-            {renderContent(content)}
+            {renderContent(content, repoId)}
           </div>
         </div>
       </div>

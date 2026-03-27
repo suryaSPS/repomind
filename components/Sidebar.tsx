@@ -25,6 +25,7 @@ interface SidebarProps {
 
 export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, username }: SidebarProps) {
   const [repos, setRepos] = useState<Repo[]>([])
+  const [search, setSearch] = useState('')
 
   async function fetchRepos() {
     const res = await fetch('/api/repos')
@@ -47,7 +48,12 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
     return () => window.removeEventListener('repomind:refresh-repos', handler)
   }, [])
 
-  const ready = repos.filter((r) => r.status === 'ready')
+  const q = search.toLowerCase()
+  const ready = repos.filter(
+    (r) => r.status === 'ready' && (
+      !q || r.name.toLowerCase().includes(q) || r.owner.toLowerCase().includes(q)
+    )
+  )
   const processing = repos.filter((r) => r.status === 'processing' || r.status === 'pending')
 
   return (
@@ -78,6 +84,22 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
         <p className="text-xs font-medium px-2 mb-2" style={{ color: 'var(--muted-foreground)' }}>
           INDEXED REPOS
         </p>
+        {repos.filter(r => r.status === 'ready').length > 2 && (
+          <div className="relative mb-2">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">🔎</span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter repos…"
+              className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg outline-none"
+              style={{
+                background: '#0a0a0f',
+                border: '1px solid var(--border)',
+                color: 'white',
+              }}
+            />
+          </div>
+        )}
 
         {ready.length === 0 && processing.length === 0 && (
           <p className="text-xs px-2 text-slate-600">

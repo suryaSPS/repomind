@@ -62,7 +62,16 @@ export async function ingestRepo(
       content: string
     }[] = []
 
-    for (const file of files) {
+    for (let fi = 0; fi < files.length; fi++) {
+      const file = files[fi]
+      // Emit current file name every 10 files so UI stays responsive
+      if (fi % 10 === 0) {
+        onProgress({
+          stage: 'Chunking code…',
+          percent: 20 + Math.floor((fi / files.length) * 8),
+          detail: file.relativePath,
+        })
+      }
       const chunks = chunkFile(file.absolutePath)
       for (const chunk of chunks) {
         allChunks.push({

@@ -1,0 +1,101 @@
+'use client'
+
+import { useState } from 'react'
+import Sidebar from '@/components/Sidebar'
+import RepoInput from '@/components/RepoInput'
+import ChatInterface from '@/components/ChatInterface'
+
+interface MainAppProps {
+  username: string
+}
+
+export default function MainApp({ username }: MainAppProps) {
+  const [activeRepo, setActiveRepo] = useState<{ id: number; name: string } | null>(null)
+
+  function handleRepoReady(repoId: number, repoName: string) {
+    setActiveRepo({ id: repoId, name: repoName })
+    // Tell sidebar to refresh
+    window.dispatchEvent(new Event('repomind:refresh-repos'))
+  }
+
+  function handleSelectRepo(id: number, name: string) {
+    setActiveRepo({ id, name })
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
+      {/* Sidebar */}
+      <Sidebar
+        activeRepoId={activeRepo?.id ?? null}
+        onSelectRepo={handleSelectRepo}
+        username={username}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {activeRepo ? (
+          <ChatInterface
+            repoId={activeRepo.id}
+            repoName={activeRepo.name}
+            username={username}
+          />
+        ) : (
+          <EmptyState onRepoReady={handleRepoReady} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8">
+      {/* Hero */}
+      <div className="text-center max-w-lg mb-10">
+        <div
+          className="inline-flex w-20 h-20 rounded-3xl items-center justify-center text-4xl mb-6"
+          style={{ background: 'linear-gradient(135deg, #1e1e3a, #2d1f52)' }}
+        >
+          🔍
+        </div>
+        <h2 className="text-3xl font-bold text-white mb-3">
+          Your AI Code Archaeologist
+        </h2>
+        <p className="text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+          Paste any public GitHub repo. RepoMind indexes the full codebase and git
+          history so you can ask questions, trace bugs, and understand decisions —
+          with cited file and line references.
+        </p>
+      </div>
+
+      {/* Input */}
+      <div className="w-full max-w-xl">
+        <RepoInput onRepoReady={onRepoReady} />
+      </div>
+
+      {/* Feature pills */}
+      <div className="flex flex-wrap gap-3 justify-center mt-8 max-w-lg">
+        {[
+          { icon: '📄', label: 'File + line citations' },
+          { icon: '🔖', label: 'Git history tracing' },
+          { icon: '🔍', label: 'Semantic code search' },
+          { icon: '🤖', label: 'Claude 3.7 agent' },
+          { icon: '⚡', label: 'Streaming answers' },
+        ].map(({ icon, label }) => (
+          <div
+            key={label}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border"
+            style={{
+              background: 'var(--muted)',
+              borderColor: 'var(--border)',
+              color: 'var(--muted-foreground)',
+            }}
+          >
+            <span>{icon}</span>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

@@ -5,6 +5,7 @@ import { useChat } from 'ai/react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import MessageBubble, { TypingIndicator } from './MessageBubble'
+import ExportChatButton from './ExportChatButton'
 
 interface ChatInterfaceProps {
   repoId: number
@@ -79,12 +80,15 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
           📁
         </div>
         <span className="text-sm font-medium text-white">{repoName}</span>
-        <span
-          className="text-xs px-2 py-0.5 rounded-full ml-auto"
-          style={{ background: '#14532d', color: '#4ade80' }}
-        >
-          indexed
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <ExportChatButton messages={messages} repoName={repoName} />
+          <span
+            className="text-xs px-2 py-0.5 rounded-full"
+            style={{ background: '#14532d', color: '#4ade80' }}
+          >
+            indexed
+          </span>
+        </div>
       </div>
 
       {/* Messages */}

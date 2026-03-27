@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# RepoMind local data (cloned repos + vector index)
+/data/repos/
 
 # vercel
 .vercel

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { repos } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import fs from 'fs'
-import path from 'path'
+import { getFileFromDB } from '@/lib/vector/search'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -18,20 +14,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 })
   }
 
-  const [repo] = await db.select().from(repos).where(eq(repos.id, repoId)).limit(1)
-  if (!repo?.clonedPath) return NextResponse.json({ error: 'Repo not found' }, { status: 404 })
+  const file = await getFileFromDB(repoId, filePath)
+  if (!file) return NextResponse.json({ error: 'File not found' }, { status: 404 })
 
-  const fullPath = path.join(repo.clonedPath, filePath)
-  if (!fullPath.startsWith(repo.clonedPath)) {
-    return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-  }
-
-  let content: string
-  try {
-    content = fs.readFileSync(fullPath, 'utf-8')
-  } catch {
-    return NextResponse.json({ error: 'File not found' }, { status: 404 })
-  }
-
-  return NextResponse.json({ content: content.slice(0, 50000), filePath })
+  return NextResponse.json({
+    content: file.content.slice(0, 50_000),
+    filePath,
+    language: file.language,
+  })
 }

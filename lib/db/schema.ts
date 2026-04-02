@@ -103,9 +103,28 @@ export const commitChunks = pgTable(
     author: varchar('author', { length: 255 }),
     date: timestamp('date'),
     filesChanged: text('files_changed'),
+    diff: text('diff'),           // full git diff stored for get_commit tool
     embedding: vector('embedding'),
   },
   (table) => [index('commit_chunks_repo_idx').on(table.repoId)]
+)
+
+// ─── Full file contents (used by open_file / grep_repo — no disk needed) ──────
+export const repoFiles = pgTable(
+  'repo_files',
+  {
+    id: serial('id').primaryKey(),
+    repoId: integer('repo_id')
+      .notNull()
+      .references(() => repos.id, { onDelete: 'cascade' }),
+    filePath: varchar('file_path', { length: 1000 }).notNull(),
+    content: text('content').notNull(),
+    language: varchar('language', { length: 100 }),
+  },
+  (table) => [
+    index('repo_files_repo_idx').on(table.repoId),
+    index('repo_files_path_idx').on(table.repoId, table.filePath),
+  ]
 )
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,3 +136,4 @@ export type ChatSession = typeof chatSessions.$inferSelect
 export type Message = typeof messages.$inferSelect
 export type CodeChunk = typeof codeChunks.$inferSelect
 export type CommitChunk = typeof commitChunks.$inferSelect
+export type RepoFile = typeof repoFiles.$inferSelect

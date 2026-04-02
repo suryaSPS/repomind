@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     })
   }
 
-  const tools = createAgentTools(repo.id, repo.clonedPath)
+  const tools = createAgentTools(repo.id)
 
   const result = await streamText({
     model: anthropic('claude-3-7-sonnet-20250219'),

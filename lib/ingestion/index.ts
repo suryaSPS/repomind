@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
-import { repos } from '@/lib/db/schema'
+import { repos, repoFiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { cloneRepo, getGitLog, getRepoPath } from './clone'
+import { cloneRepo, getGitLog, getCommitDiff } from './clone'
 import { walkRepo } from './walker'
 import { chunkFile } from './chunker'
 import { embedAll } from './embedder'
 import { insertCodeChunks, insertCommitChunks, deleteRepoChunks } from '@/lib/vector/search'
+import fs from 'fs'
 
 export interface IngestionProgress {
   stage: string
@@ -90,10 +91,25 @@ export async function ingestRepo(
       detail: `${allChunks.length} chunks from ${files.length} files`,
     })
 
-    // ── 4. Embed code chunks ──────────────────────────────────────────────────
+    // ── 4. Store full file contents in DB (enables Vercel disk-free operation) ─
+    onProgress({ stage: 'Storing files…', percent: 29 })
+    await db.delete(repoFiles).where(eq(repoFiles.repoId, repoId))
+
+    const FILE_BATCH = 50
+    for (let i = 0; i < files.length; i += FILE_BATCH) {
+      const batch = files.slice(i, i + FILE_BATCH)
+      const rows = batch.map((f) => {
+        let content = ''
+        try { content = fs.readFileSync(f.absolutePath, 'utf-8').slice(0, 100_000) } catch { /* skip */ }
+        return { repoId, filePath: f.relativePath, content, language: f.language }
+      })
+      await db.insert(repoFiles).values(rows)
+    }
+
+    // ── 5. Embed code chunks ──────────────────────────────────────────────────
     onProgress({ stage: 'Embedding code…', percent: 32 })
 
-    // Clear any existing chunks for this repo (re-ingest)
+    // Clear any existing vector chunks for this repo (re-ingest)
     await deleteRepoChunks(repoId)
 
     const chunkTexts = allChunks.map(
@@ -148,11 +164,17 @@ export async function ingestRepo(
       })
     })
 
-    // ── 8. Store commits ──────────────────────────────────────────────────────
+    // ── 8. Store commits (with diffs) ─────────────────────────────────────────
     onProgress({ stage: 'Storing commits…', percent: 91 })
     for (let i = 0; i < commits.length; i += STORE_BATCH) {
       const batch = commits.slice(i, i + STORE_BATCH)
       const embBatch = commitEmbeddings.slice(i, i + STORE_BATCH)
+
+      const diffsToFetch = batch.slice(0, 10)
+      const diffs = await Promise.all(
+        diffsToFetch.map((c) => getCommitDiff(repoPath, c.hash))
+      )
+
       await insertCommitChunks(
         batch.map((c, j) => ({
           repoId,
@@ -161,6 +183,7 @@ export async function ingestRepo(
           author: c.author,
           date: c.date,
           filesChanged: c.filesChanged.join(', '),
+          diff: diffs[j] ?? null,
           embedding: embBatch[j],
         }))
       )

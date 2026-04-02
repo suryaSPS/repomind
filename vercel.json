@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "app/api/ingest/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/repos/[id]/reingest/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/chat/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "env": {
+    "NEXTAUTH_URL": "@nextauth_url"
+  }
+}

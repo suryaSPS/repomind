@@ -3,7 +3,10 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
-const REPOS_DIR = path.join(process.cwd(), 'data', 'repos')
+// On Vercel, process.cwd() is read-only — use /tmp instead
+const REPOS_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'repomind-repos')
+  : path.join(process.cwd(), 'data', 'repos')
 
 export function getRepoHash(url: string): string {
   return crypto.createHash('md5').update(url).digest('hex').slice(0, 12)
@@ -99,4 +102,14 @@ export async function getGitLog(repoPath: string): Promise<
   }
 
   return commits
+}
+
+export async function getCommitDiff(repoPath: string, hash: string): Promise<string> {
+  try {
+    const git = simpleGit(repoPath)
+    const diff = await git.raw(['show', '--stat', hash])
+    return diff.slice(0, 4000)
+  } catch {
+    return ''
+  }
 }

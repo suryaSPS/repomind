@@ -27,8 +27,6 @@
 import * as readline from 'readline'
 import * as dotenv from 'dotenv'
 import path from 'path'
-import fs from 'fs'
-import { execSync } from 'child_process'
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
 
@@ -168,35 +166,41 @@ rl.on('line', async (line) => {
         resultText = `### Code Results\n${codeStr}\n\n### Commit Results\n${commitStr}`
 
       } else if (toolName === 'open_file') {
-        const fullPath = path.join(repo.clonedPath!, input.filePath as string)
-        if (!fullPath.startsWith(repo.clonedPath!)) {
-          resultText = 'Error: access denied'
+        const { getFileFromDB } = await import('../lib/vector/search.js')
+        const file = await getFileFromDB(REPO_ID!, input.filePath as string)
+        if (!file) {
+          resultText = `Error: file not found: ${input.filePath}`
         } else {
-          let content = fs.readFileSync(fullPath, 'utf-8')
+          let content = file.content
           if (input.startLine || input.endLine) {
             const lines = content.split('\n')
             const from = ((input.startLine as number) ?? 1) - 1
             const to = (input.endLine as number) ?? lines.length
-            content = lines.slice(from, to).map((l, i) => `${from + i + 1}: ${l}`).join('\n')
+            content = lines.slice(from, to).map((l: string, i: number) => `${from + i + 1}: ${l}`).join('\n')
           }
           resultText = content.slice(0, 8000)
         }
 
       } else if (toolName === 'grep_repo') {
-        const safe = (input.pattern as string).replace(/"/g, '\\"')
-        const glob = input.fileGlob ? `--include="${input.fileGlob}"` : ''
-        const out = execSync(
-          `grep -rn --text -l ${glob} -E "${safe}" "${repo.clonedPath}" 2>/dev/null | head -5`,
-          { timeout: 8000 }
-        ).toString().trim()
-        resultText = out || 'No matches found'
+        const { grepFilesFromDB } = await import('../lib/vector/search.js')
+        const results = await grepFilesFromDB(REPO_ID!, input.pattern as string, 10)
+        if (results.length === 0) {
+          resultText = 'No matches found'
+        } else {
+          resultText = results
+            .filter((r: { lines: string[] }) => r.lines.length > 0)
+            .map((r: { filePath: string; lines: string[] }) => `📄 ${r.filePath}:\n${r.lines.join('\n')}`)
+            .join('\n\n')
+        }
 
       } else if (toolName === 'get_commit') {
-        const out = execSync(
-          `git -C "${repo.clonedPath}" show --stat "${input.hash}" 2>/dev/null | head -60`,
-          { timeout: 8000 }
-        ).toString()
-        resultText = out.slice(0, 3000) || `Commit ${input.hash} not found`
+        const { getCommitFromDB } = await import('../lib/vector/search.js')
+        const commit = await getCommitFromDB(REPO_ID!, input.hash as string)
+        if (!commit) {
+          resultText = `Commit ${input.hash} not found`
+        } else {
+          resultText = `Hash: ${commit.hash}\nAuthor: ${commit.author}\nDate: ${commit.date}\nMessage: ${commit.message}\nFiles: ${commit.filesChanged ?? 'N/A'}\n\n${commit.diff ?? 'No diff stored'}`
+        }
       }
 
       send({

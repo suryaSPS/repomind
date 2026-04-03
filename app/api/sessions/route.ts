@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { chatSessions, messages, repos } from '@/lib/db/schema'
+import { chatSessions, repos } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 
 export async function GET() {

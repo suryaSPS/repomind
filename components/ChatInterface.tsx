@@ -28,6 +28,9 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [sessionId, setSessionId] = useState<number | null>(initialSessionId ?? null)
+  const [restoredMessages, setRestoredMessages] = useState<
+    { id: string; role: 'user' | 'assistant'; content: string }[]
+  >([])
 
   // Load prior messages when restoring a session
   useEffect(() => {
@@ -36,12 +39,18 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
       .then((r) => r.json())
       .then((data) => {
         if (data.messages?.length) {
-          // We'll rely on useChat's initialMessages
+          setRestoredMessages(
+            data.messages.map((m: { id: number; role: string; content: string }) => ({
+              id: String(m.id),
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            }))
+          )
         }
       })
   }, [initialSessionId])
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const { messages: liveMessages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
     body: { repoId, sessionId },
     onResponse(response: Response) {
@@ -49,6 +58,12 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
       if (sid) setSessionId(Number(sid))
     },
   })
+
+  // Combine restored + live messages, avoiding duplicates
+  const messages = [
+    ...restoredMessages,
+    ...liveMessages.filter((m) => !restoredMessages.some((r) => r.id === m.id)),
+  ]
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

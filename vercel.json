@@ -9,8 +9,5 @@
     "app/api/chat/route.ts": {
       "maxDuration": 60
     }
-  },
-  "env": {
-    "NEXTAUTH_URL": "@nextauth_url"
   }
 }

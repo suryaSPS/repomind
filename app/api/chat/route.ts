@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     const tools = createAgentTools(repo.id)
 
     const result = await streamText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: anthropic('claude-haiku-4-5-20251001'),
       system: buildSystemPrompt(repo.name, repo.url) + contextBlock,
       messages: clientMessages,
       tools,

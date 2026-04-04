@@ -141,7 +141,7 @@ export async function ingestRepo(
 
     // ── 6. Parse git history ──────────────────────────────────────────────────
     onProgress({ stage: 'Parsing git history…', percent: 70 })
-    const commits = await getGitLog(repoPath)
+    const commits = await getGitLog(repoPath, url)
     onProgress({
       stage: 'Parsing git history…',
       percent: 73,
@@ -172,7 +172,7 @@ export async function ingestRepo(
 
       const diffsToFetch = batch.slice(0, 10)
       const diffs = await Promise.all(
-        diffsToFetch.map((c) => getCommitDiff(repoPath, c.hash))
+        diffsToFetch.map((c) => getCommitDiff(repoPath, c.hash, url))
       )
 
       await insertCommitChunks(

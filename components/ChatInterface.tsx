@@ -165,15 +165,37 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
           </div>
         )}
 
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            role={m.role as 'user' | 'assistant'}
-            content={m.content}
-            username={username}
-            repoId={repoId}
-          />
-        ))}
+        {messages.map((m) => {
+          // For assistant messages with tool calls, only show the final text
+          // (skip intermediate "I'll search for..." planning text)
+          let content = m.content
+          if (m.role === 'assistant' && 'parts' in m && Array.isArray(m.parts)) {
+            const textParts = m.parts.filter(
+              (p: { type: string }) => p.type === 'text'
+            )
+            const hasToolCalls = m.parts.some(
+              (p: { type: string }) => p.type === 'tool-invocation'
+            )
+            if (hasToolCalls && textParts.length > 1) {
+              // Use only the last text part (the final answer)
+              content = (textParts[textParts.length - 1] as { type: string; text: string }).text
+            } else if (hasToolCalls && textParts.length === 1) {
+              content = (textParts[0] as { type: string; text: string }).text
+            }
+          }
+
+          if (!content?.trim()) return null
+
+          return (
+            <MessageBubble
+              key={m.id}
+              role={m.role as 'user' | 'assistant'}
+              content={content}
+              username={username}
+              repoId={repoId}
+            />
+          )
+        })}
 
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <TypingIndicator />

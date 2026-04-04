@@ -1,16 +1,23 @@
-import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  const session = await auth()
+/**
+ * Lightweight middleware that checks for the NextAuth session cookie
+ * without importing auth() — which pulls in Node.js-only deps
+ * (pg, bcryptjs) that crash in Vercel's Edge Runtime.
+ */
+export function middleware(request: NextRequest) {
+  const sessionToken =
+    request.cookies.get('authjs.session-token')?.value ||
+    request.cookies.get('__Secure-authjs.session-token')?.value
+
   const isLoginPage = request.nextUrl.pathname === '/login'
 
-  if (!session && !isLoginPage) {
+  if (!sessionToken && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (session && isLoginPage) {
+  if (sessionToken && isLoginPage) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

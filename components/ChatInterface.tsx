@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useChat } from 'ai/react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import MessageBubble, { TypingIndicator } from './MessageBubble'
+import MessageBubble, { ThinkingIndicator } from './MessageBubble'
 import ExportChatButton from './ExportChatButton'
 import ShortcutHint from './ShortcutHint'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -197,8 +197,8 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
           )
         })}
 
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <TypingIndicator />
+        {isLoading && (
+          <ThinkingIndicator />
         )}
 
         {error && (

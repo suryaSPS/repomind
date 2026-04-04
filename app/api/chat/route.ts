@@ -35,75 +35,84 @@ export async function POST(req: Request) {
     return new Response('Repo not yet indexed', { status: 400 })
   }
 
-  // Get the latest user message for initial context retrieval
-  const lastUserMessage = [...clientMessages]
-    .reverse()
-    .find((m: { role: string; content: string }) => m.role === 'user')
+  try {
+    // Get the latest user message for initial context retrieval
+    const lastUserMessage = [...clientMessages]
+      .reverse()
+      .find((m: { role: string; content: string }) => m.role === 'user')
 
-  // Pre-fetch top context chunks to include in the system prompt
-  let contextBlock = ''
-  if (lastUserMessage?.content) {
-    const [queryEmbedding] = await embedBatch([lastUserMessage.content])
-    const codeResults = await searchCodeChunks(repo.id, queryEmbedding, 5)
-    const commitResults = await searchCommitChunks(repo.id, queryEmbedding, 3)
+    // Pre-fetch top context chunks to include in the system prompt
+    let contextBlock = ''
+    if (lastUserMessage?.content) {
+      const [queryEmbedding] = await embedBatch([lastUserMessage.content])
+      const codeResults = await searchCodeChunks(repo.id, queryEmbedding, 5)
+      const commitResults = await searchCommitChunks(repo.id, queryEmbedding, 3)
 
-    const codeContext = codeResults
-      .map(
-        (r) =>
-          `📄 ${r.filePath}:${r.lineStart}-${r.lineEnd}\n\`\`\`${r.language ?? ''}\n${r.content}\n\`\`\``
-      )
-      .join('\n\n')
+      const codeContext = codeResults
+        .map(
+          (r) =>
+            `📄 ${r.filePath}:${r.lineStart}-${r.lineEnd}\n\`\`\`${r.language ?? ''}\n${r.content}\n\`\`\``
+        )
+        .join('\n\n')
 
-    const commitContext = commitResults
-      .map(
-        (r) =>
-          `🔖 ${r.hash.slice(0, 7)} — ${r.author} — ${r.date ? new Date(r.date).toDateString() : 'N/A'}\n${r.message}\nFiles: ${r.filesChanged ?? 'N/A'}`
-      )
-      .join('\n\n')
+      const commitContext = commitResults
+        .map(
+          (r) =>
+            `🔖 ${r.hash.slice(0, 7)} — ${r.author} — ${r.date ? new Date(r.date).toDateString() : 'N/A'}\n${r.message}\nFiles: ${r.filesChanged ?? 'N/A'}`
+        )
+        .join('\n\n')
 
-    contextBlock = `\n\n## Pre-retrieved context (most relevant to the current question):\n\n### Code:\n${codeContext}\n\n### Recent relevant commits:\n${commitContext}`
-  }
+      contextBlock = `\n\n## Pre-retrieved context (most relevant to the current question):\n\n### Code:\n${codeContext}\n\n### Recent relevant commits:\n${commitContext}`
+    }
 
-  // Persist user message & resolve session
-  const userId = Number(session.user?.id)
-  let resolvedSessionId = sessionId
+    // Persist user message & resolve session
+    const userId = Number(session.user?.id)
+    let resolvedSessionId = sessionId
 
-  if (!resolvedSessionId) {
-    const [newSession] = await db
-      .insert(chatSessions)
-      .values({ userId, repoId: repo.id })
-      .returning({ id: chatSessions.id })
-    resolvedSessionId = newSession.id
-  }
+    if (!resolvedSessionId) {
+      const [newSession] = await db
+        .insert(chatSessions)
+        .values({ userId, repoId: repo.id })
+        .returning({ id: chatSessions.id })
+      resolvedSessionId = newSession.id
+    }
 
-  if (lastUserMessage) {
-    await db.insert(messages).values({
-      sessionId: resolvedSessionId,
-      role: 'user',
-      content: lastUserMessage.content,
+    if (lastUserMessage) {
+      await db.insert(messages).values({
+        sessionId: resolvedSessionId,
+        role: 'user',
+        content: lastUserMessage.content,
+      })
+    }
+
+    const tools = createAgentTools(repo.id)
+
+    const result = await streamText({
+      model: anthropic('claude-sonnet-4-20250514'),
+      system: buildSystemPrompt(repo.name, repo.url) + contextBlock,
+      messages: clientMessages,
+      tools,
+      maxSteps: 8,
+      onFinish: async ({ text }) => {
+        if (text) {
+          await db.insert(messages).values({
+            sessionId: resolvedSessionId,
+            role: 'assistant',
+            content: text,
+          })
+        }
+      },
+    })
+
+    return result.toDataStreamResponse({
+      headers: { 'X-Session-Id': String(resolvedSessionId) },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('Chat API error:', message)
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
     })
   }
-
-  const tools = createAgentTools(repo.id)
-
-  const result = await streamText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
-    system: buildSystemPrompt(repo.name, repo.url) + contextBlock,
-    messages: clientMessages,
-    tools,
-    maxSteps: 8,
-    onFinish: async ({ text }) => {
-      if (text) {
-        await db.insert(messages).values({
-          sessionId: resolvedSessionId,
-          role: 'assistant',
-          content: text,
-        })
-      }
-    },
-  })
-
-  return result.toDataStreamResponse({
-    headers: { 'X-Session-Id': String(resolvedSessionId) },
-  })
 }

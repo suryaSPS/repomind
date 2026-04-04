@@ -13,7 +13,42 @@ interface MessageBubbleProps {
 // Regex to find citations like `src/auth/jwt.ts:45-67` or `src/auth/jwt.ts:45`
 const CITATION_REGEX = /`([^`]+\.[a-z]+:\d+(?:-\d+)?)`/g
 
-// Render markdown-lite: bold, code, citations
+// Process inline markdown: bold, inline code, and citations
+function processInline(text: string, keyPrefix: string, repoId?: number): React.ReactNode[] {
+  // Match bold (**text**), inline code (`code`), and ❌/✅ markers
+  const tokenRegex = /\*\*(.*?)\*\*|`([^`]+)`|([❌✅])/g
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let m: RegExpExecArray | null
+
+  while ((m = tokenRegex.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+
+    if (m[1] !== undefined) {
+      // Bold
+      parts.push(<strong key={`${keyPrefix}-b-${m.index}`} className="text-indigo-300 font-semibold">{m[1]}</strong>)
+    } else if (m[2] !== undefined) {
+      // Inline code — check if it's a file citation
+      const isCitation = /[^`]+\.[a-z]+:\d+/.test(m[2])
+      if (isCitation) {
+        parts.push(<CitationChip key={`${keyPrefix}-cite-${m.index}`} citation={m[2]} repoId={repoId} />)
+      } else {
+        parts.push(
+          <code key={`${keyPrefix}-ic-${m.index}`} className="bg-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-sm font-mono">
+            {m[2]}
+          </code>
+        )
+      }
+    } else {
+      parts.push(m[0])
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
+
+// Render markdown-lite: code blocks, headings, lists, paragraphs with bold/code/citations
 function renderContent(content: string, repoId?: number) {
   // Split by code blocks first
   const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g
@@ -21,34 +56,17 @@ function renderContent(content: string, repoId?: number) {
   let lastIndex = 0
   let blockMatch: RegExpExecArray | null
 
-  const processInline = (text: string, key: string): React.ReactNode => {
-    // Handle bold
-    const boldRegex = /\*\*(.*?)\*\*/g
-    const inlineParts: React.ReactNode[] = []
-    let last = 0
-    let m: RegExpExecArray | null
-
-    while ((m = boldRegex.exec(text)) !== null) {
-      if (m.index > last) inlineParts.push(text.slice(last, m.index))
-      inlineParts.push(<strong key={m.index} className="text-indigo-300 font-semibold">{m[1]}</strong>)
-      last = m.index + m[0].length
-    }
-    if (last < text.length) inlineParts.push(text.slice(last))
-
-    return <span key={key}>{inlineParts}</span>
-  }
-
   while ((blockMatch = codeBlockRegex.exec(content)) !== null) {
     if (blockMatch.index > lastIndex) {
       const before = content.slice(lastIndex, blockMatch.index)
       parts.push(
         <span key={`text-${lastIndex}`} className="whitespace-pre-wrap">
-          {processInline(before, `inline-${lastIndex}`)}
+          {processInline(before, `pre-${lastIndex}`, repoId)}
         </span>
       )
     }
     parts.push(
-      <pre key={`code-${blockMatch.index}`} className="my-3 text-sm overflow-x-auto">
+      <pre key={`code-${blockMatch.index}`} className="my-3 text-sm overflow-x-auto bg-slate-900 rounded-lg p-3">
         <code className={`language-${blockMatch[1]}`}>{blockMatch[2]}</code>
       </pre>
     )
@@ -67,60 +85,31 @@ function renderContent(content: string, repoId?: number) {
         const sizes = ['text-xl', 'text-lg', 'text-base']
         parts.push(
           <p key={`h-${i}`} className={`${sizes[Math.min(level - 1, 2)]} font-semibold text-white mt-4 mb-1`}>
-            {text}
+            {processInline(text, `h-${i}`, repoId)}
           </p>
         )
-      } else if (para.startsWith('- ') || para.startsWith('* ')) {
+      } else if (para.match(/^[\s]*[-*] /)) {
         const lines = para.split('\n').filter(Boolean)
         parts.push(
           <ul key={`ul-${i}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
             {lines.map((line, j) => (
-              <li key={j}>{line.replace(/^[-*]\s/, '')}</li>
+              <li key={j}>{processInline(line.replace(/^[\s]*[-*]\s/, ''), `li-${i}-${j}`, repoId)}</li>
             ))}
           </ul>
         )
+      } else if (para.match(/^\d+\.\s/)) {
+        const lines = para.split('\n').filter(Boolean)
+        parts.push(
+          <ol key={`ol-${i}`} className="list-decimal list-inside space-y-1 my-2 text-slate-300">
+            {lines.map((line, j) => (
+              <li key={j}>{processInline(line.replace(/^\d+\.\s/, ''), `oli-${i}-${j}`, repoId)}</li>
+            ))}
+          </ol>
+        )
       } else if (para.trim()) {
-        // Inline code + citations
-        const inlineCodeRegex = /`([^`]+)`/g
-        const lineParts: React.ReactNode[] = []
-        let lLast = 0
-        let lm: RegExpExecArray | null
-
-        while ((lm = inlineCodeRegex.exec(para)) !== null) {
-          if (lm.index > lLast) {
-            lineParts.push(
-              <span key={`t-${lLast}`} className="whitespace-pre-wrap">
-                {processInline(para.slice(lLast, lm.index), `il-${lLast}`)}
-              </span>
-            )
-          }
-          // Check if it's a file citation (has colon + number)
-          const isCitation = /[^`]+\.[a-z]+:\d+/.test(lm[1])
-          if (isCitation) {
-            parts.push(
-              <CitationChip key={`cite-${lm.index}`} citation={lm[1]} repoId={repoId} />
-            )
-          } else {
-            lineParts.push(
-              <code key={`ic-${lm.index}`} className="bg-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-sm font-mono">
-                {lm[1]}
-              </code>
-            )
-          }
-          lLast = lm.index + lm[0].length
-        }
-
-        if (lLast < para.length) {
-          lineParts.push(
-            <span key={`tl-${lLast}`} className="whitespace-pre-wrap">
-              {processInline(para.slice(lLast), `tle-${lLast}`)}
-            </span>
-          )
-        }
-
         parts.push(
           <p key={`p-${i}`} className="my-1.5 text-slate-200 leading-relaxed">
-            {lineParts}
+            {processInline(para, `p-${i}`, repoId)}
           </p>
         )
       }
@@ -220,7 +209,7 @@ export default function MessageBubble({ role, content, username, repoId }: Messa
   )
 }
 
-export function TypingIndicator() {
+export function ThinkingIndicator() {
   return (
     <div className="flex gap-3 fade-in">
       <div
@@ -233,10 +222,13 @@ export function TypingIndicator() {
         className="rounded-2xl rounded-tl-sm px-4 py-3"
         style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <div className="flex gap-1 items-center h-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 items-center h-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
+          </div>
+          <span className="text-xs text-slate-500">Thinking...</span>
         </div>
       </div>
     </div>

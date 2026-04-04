@@ -76,44 +76,84 @@ function renderContent(content: string, repoId?: number) {
   if (lastIndex < content.length) {
     const remaining = content.slice(lastIndex)
 
-    // Process paragraph breaks
-    const paragraphs = remaining.split('\n\n')
-    paragraphs.forEach((para, i) => {
-      if (para.startsWith('# ') || para.startsWith('## ') || para.startsWith('### ')) {
-        const level = para.match(/^(#+)/)?.[1].length ?? 1
-        const text = para.replace(/^#+\s/, '')
+    // Split into lines, then process each line by type
+    const lines = remaining.split('\n')
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i]
+      const trimmed = line.trim()
+
+      // Empty line — skip
+      if (!trimmed) { i++; continue }
+
+      // Heading
+      if (/^#{1,3}\s/.test(trimmed)) {
+        const level = trimmed.match(/^(#+)/)?.[1].length ?? 1
+        const text = trimmed.replace(/^#+\s/, '')
         const sizes = ['text-xl', 'text-lg', 'text-base']
         parts.push(
           <p key={`h-${i}`} className={`${sizes[Math.min(level - 1, 2)]} font-semibold text-white mt-4 mb-1`}>
             {processInline(text, `h-${i}`, repoId)}
           </p>
         )
-      } else if (para.match(/^[\s]*[-*] /)) {
-        const lines = para.split('\n').filter(Boolean)
+        i++
+        continue
+      }
+
+      // Unordered list — collect consecutive list items
+      if (/^[-*]\s/.test(trimmed)) {
+        const items: string[] = []
+        while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+          items.push(lines[i].trim().replace(/^[-*]\s/, ''))
+          i++
+        }
         parts.push(
           <ul key={`ul-${i}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
-            {lines.map((line, j) => (
-              <li key={j}>{processInline(line.replace(/^[\s]*[-*]\s/, ''), `li-${i}-${j}`, repoId)}</li>
+            {items.map((item, j) => (
+              <li key={j}>{processInline(item, `li-${i}-${j}`, repoId)}</li>
             ))}
           </ul>
         )
-      } else if (para.match(/^\d+\.\s/)) {
-        const lines = para.split('\n').filter(Boolean)
+        continue
+      }
+
+      // Ordered list — collect consecutive numbered items
+      if (/^\d+\.\s/.test(trimmed)) {
+        const items: string[] = []
+        while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+          items.push(lines[i].trim().replace(/^\d+\.\s/, ''))
+          i++
+        }
         parts.push(
           <ol key={`ol-${i}`} className="list-decimal list-inside space-y-1 my-2 text-slate-300">
-            {lines.map((line, j) => (
-              <li key={j}>{processInline(line.replace(/^\d+\.\s/, ''), `oli-${i}-${j}`, repoId)}</li>
+            {items.map((item, j) => (
+              <li key={j}>{processInline(item, `oli-${i}-${j}`, repoId)}</li>
             ))}
           </ol>
         )
-      } else if (para.trim()) {
+        continue
+      }
+
+      // Regular paragraph — collect consecutive non-special lines
+      const paraLines: string[] = []
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !/^#{1,3}\s/.test(lines[i].trim()) &&
+        !/^[-*]\s/.test(lines[i].trim()) &&
+        !/^\d+\.\s/.test(lines[i].trim())
+      ) {
+        paraLines.push(lines[i])
+        i++
+      }
+      if (paraLines.length > 0) {
         parts.push(
           <p key={`p-${i}`} className="my-1.5 text-slate-200 leading-relaxed">
-            {processInline(para, `p-${i}`, repoId)}
+            {processInline(paraLines.join('\n'), `p-${i}`, repoId)}
           </p>
         )
       }
-    })
+    }
   }
 
   return parts

@@ -86,6 +86,58 @@ function renderContent(content: string, repoId?: number) {
       // Empty line — skip
       if (!trimmed) { i++; continue }
 
+      // Horizontal rule
+      if (/^[-*_]{3,}$/.test(trimmed)) {
+        parts.push(<hr key={`hr-${i}`} className="border-slate-700 my-4" />)
+        i++
+        continue
+      }
+
+      // Table — detect lines starting with |
+      if (/^\|.+\|$/.test(trimmed)) {
+        const tableLines: string[] = []
+        while (i < lines.length && /^\|.+\|$/.test(lines[i].trim())) {
+          tableLines.push(lines[i].trim())
+          i++
+        }
+        if (tableLines.length >= 2) {
+          // Parse header
+          const headerCells = tableLines[0].split('|').filter(Boolean).map(c => c.trim())
+          // Skip separator row (|---|---|)
+          const startRow = /^[-:\s|]+$/.test(tableLines[1]) ? 2 : 1
+          const bodyRows = tableLines.slice(startRow).map(row =>
+            row.split('|').filter(Boolean).map(c => c.trim())
+          )
+          parts.push(
+            <div key={`table-${i}`} className="my-3 overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ background: '#1e1e3a' }}>
+                    {headerCells.map((cell, ci) => (
+                      <th key={ci} className="px-3 py-2 text-left font-semibold text-slate-300 border-b" style={{ borderColor: 'var(--border)' }}>
+                        {processInline(cell, `th-${i}-${ci}`, repoId)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bodyRows.map((row, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : '#0f0f1a' }}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} className="px-3 py-2 text-slate-300 border-b" style={{ borderColor: 'var(--border)' }}>
+                          {processInline(cell, `td-${i}-${ri}-${ci}`, repoId)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+          continue
+        }
+      }
+
       // Heading
       if (/^#{1,3}\s/.test(trimmed)) {
         const level = trimmed.match(/^(#+)/)?.[1].length ?? 1

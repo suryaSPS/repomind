@@ -21,10 +21,11 @@ interface SidebarProps {
   onSelectRepo: (id: number, name: string) => void
   onRestoreSession: (sessionId: number, repoId: number, repoName: string) => void
   onAddRepo: () => void
+  onGoHome: () => void
   username: string
 }
 
-export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, onAddRepo, username }: SidebarProps) {
+export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, onAddRepo, onGoHome, username }: SidebarProps) {
   const [repos, setRepos] = useState<Repo[]>([])
   const [search, setSearch] = useState('')
   const [showAddInput, setShowAddInput] = useState(false)
@@ -127,9 +128,13 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
       className="w-64 h-full flex flex-col border-r"
       style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
     >
-      {/* Logo */}
+      {/* Logo — click to go home */}
       <div className="px-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={onGoHome}
+          className="flex items-center gap-2.5 w-full text-left transition-opacity hover:opacity-80"
+          title="Go to home page"
+        >
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
@@ -142,7 +147,7 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
               Code Archaeologist
             </p>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Repos list */}

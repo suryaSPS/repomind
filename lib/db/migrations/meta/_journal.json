@@ -15,6 +15,13 @@
       "when": 1775138566856,
       "tag": "0001_mute_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775225000000,
+      "tag": "0002_add_oauth_and_user_repos",
+      "breakpoints": true
     }
   ]
 }

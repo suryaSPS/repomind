@@ -20,12 +20,78 @@ interface SidebarProps {
   activeRepoId: number | null
   onSelectRepo: (id: number, name: string) => void
   onRestoreSession: (sessionId: number, repoId: number, repoName: string) => void
+  onAddRepo: () => void
   username: string
 }
 
-export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, username }: SidebarProps) {
+export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, onAddRepo, username }: SidebarProps) {
   const [repos, setRepos] = useState<Repo[]>([])
   const [search, setSearch] = useState('')
+  const [showAddInput, setShowAddInput] = useState(false)
+  const [newRepoUrl, setNewRepoUrl] = useState('')
+  const [addingRepo, setAddingRepo] = useState(false)
+  const [addError, setAddError] = useState('')
+
+  async function handleAddRepo() {
+    if (!newRepoUrl.trim() || addingRepo) return
+    setAddingRepo(true)
+    setAddError('')
+
+    // Normalize the URL
+    let url = newRepoUrl.trim()
+    if (!url.startsWith('http')) url = `https://${url}`
+
+    try {
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        setAddError(text || 'Failed to start indexing')
+        setAddingRepo(false)
+        return
+      }
+
+      // Parse SSE stream for completion
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const text = decoder.decode(value)
+        for (const line of text.split('\n')) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.stage === 'done' && data.repoId) {
+                const name = url.split('/').at(-1)?.replace('.git', '') ?? 'repo'
+                setShowAddInput(false)
+                setNewRepoUrl('')
+                setAddingRepo(false)
+                fetchRepos()
+                onAddRepo()
+                onSelectRepo(data.repoId, name)
+                return
+              }
+              if (data.stage === 'error') {
+                setAddError(data.error || 'Indexing failed')
+                setAddingRepo(false)
+                return
+              }
+            } catch { /* skip */ }
+          }
+        }
+      }
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Network error')
+    }
+    setAddingRepo(false)
+  }
 
   async function fetchRepos() {
     const res = await fetch('/api/repos')
@@ -81,9 +147,61 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
 
       {/* Repos list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
-        <p className="text-xs font-medium px-2 mb-2" style={{ color: 'var(--muted-foreground)' }}>
-          INDEXED REPOS
-        </p>
+        <div className="flex items-center justify-between px-2 mb-2">
+          <p className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
+            INDEXED REPOS
+          </p>
+          <button
+            onClick={() => { setShowAddInput(!showAddInput); setAddError('') }}
+            className="text-xs px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: 'white',
+            }}
+            title="Add new repo"
+          >
+            + Add
+          </button>
+        </div>
+
+        {/* Inline add repo form */}
+        {showAddInput && (
+          <div className="mb-2 px-1">
+            <div className="flex gap-1">
+              <input
+                value={newRepoUrl}
+                onChange={(e) => setNewRepoUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddRepo()
+                  if (e.key === 'Escape') { setShowAddInput(false); setNewRepoUrl('') }
+                }}
+                placeholder="github.com/owner/repo"
+                disabled={addingRepo}
+                autoFocus
+                className="flex-1 min-w-0 px-2 py-1.5 text-xs rounded-lg outline-none"
+                style={{
+                  background: '#0a0a0f',
+                  border: '1px solid var(--border)',
+                  color: 'white',
+                }}
+              />
+              <button
+                onClick={handleAddRepo}
+                disabled={addingRepo || !newRepoUrl.trim()}
+                className="shrink-0 px-2 py-1.5 text-xs rounded-lg transition-colors"
+                style={{
+                  background: addingRepo ? '#2d2d44' : '#6366f1',
+                  color: 'white',
+                }}
+              >
+                {addingRepo ? '...' : 'Go'}
+              </button>
+            </div>
+            {addError && (
+              <p className="text-xs text-red-400 mt-1 px-1">{addError}</p>
+            )}
+          </div>
+        )}
         {repos.filter(r => r.status === 'ready').length > 2 && (
           <div className="relative mb-2">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">🔎</span>

@@ -30,16 +30,20 @@ const vector = customType<{ data: number[]; driverData: string }>({
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: varchar('username', { length: 255 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),  // nullable for OAuth users
+  email: varchar('email', { length: 255 }),
+  image: varchar('image', { length: 500 }),
+  provider: varchar('provider', { length: 50 }).default('credentials'),  // 'credentials' | 'github'
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
 // ─── Repos ────────────────────────────────────────────────────────────────────
 export const repos = pgTable('repos', {
   id: serial('id').primaryKey(),
-  url: varchar('url', { length: 500 }).notNull().unique(),
+  url: varchar('url', { length: 500 }).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   owner: varchar('owner', { length: 255 }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   // pending | processing | ready | error
   fileCount: integer('file_count').default(0),

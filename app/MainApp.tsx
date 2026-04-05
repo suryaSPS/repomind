@@ -37,6 +37,7 @@ export default function MainApp({ username }: MainAppProps) {
         onSelectRepo={handleSelectRepo}
         onRestoreSession={handleRestoreSession}
         onAddRepo={() => {}}
+        onGoHome={() => { setActiveRepo(null); setRestoredSessionId(null) }}
         username={username}
       />
 

@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
+import Google from 'next-auth/providers/google'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
@@ -11,6 +12,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     Credentials({
       credentials: {
@@ -46,9 +51,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'github') {
-        // Auto-create or update user on GitHub OAuth login
-        const username = user.name ?? user.email?.split('@')[0] ?? 'github-user'
+      if (account?.provider === 'github' || account?.provider === 'google') {
+        // Auto-create or update user on OAuth login
+        const provider = account.provider
+        const username = user.name ?? user.email?.split('@')[0] ?? `${provider}-user`
         const email = user.email ?? null
         const image = user.image ?? null
 
@@ -67,7 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             .where(eq(users.username, username))
             .limit(1)
           if (byName) {
-            finalUsername = `${username}-gh`
+            finalUsername = `${username}-${provider}`
           }
 
           const [created] = await db
@@ -76,7 +82,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               username: finalUsername,
               email,
               image,
-              provider: 'github',
+              provider,
             })
             .returning({ id: users.id })
 

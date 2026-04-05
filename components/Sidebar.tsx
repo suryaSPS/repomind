@@ -22,16 +22,36 @@ interface SidebarProps {
   onRestoreSession: (sessionId: number, repoId: number, repoName: string) => void
   onAddRepo: () => void
   onGoHome: () => void
+  onMultiRepoChat: (repoIds: number[], repoNames: string[]) => void
   username: string
 }
 
-export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, onAddRepo, onGoHome, username }: SidebarProps) {
+export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, onAddRepo, onGoHome, onMultiRepoChat, username }: SidebarProps) {
   const [repos, setRepos] = useState<Repo[]>([])
   const [search, setSearch] = useState('')
   const [showAddInput, setShowAddInput] = useState(false)
   const [newRepoUrl, setNewRepoUrl] = useState('')
   const [addingRepo, setAddingRepo] = useState(false)
   const [addError, setAddError] = useState('')
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedRepos, setSelectedRepos] = useState<Set<number>>(new Set())
+
+  function toggleRepoSelection(id: number) {
+    setSelectedRepos((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function startMultiRepoChat() {
+    const ids = Array.from(selectedRepos)
+    const names = ids.map((id) => repos.find((r) => r.id === id)?.name ?? 'repo')
+    onMultiRepoChat(ids, names)
+    setCompareMode(false)
+    setSelectedRepos(new Set())
+  }
 
   async function handleAddRepo() {
     if (!newRepoUrl.trim() || addingRepo) return
@@ -156,18 +176,53 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
           <p className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
             INDEXED REPOS
           </p>
-          <button
-            onClick={() => { setShowAddInput(!showAddInput); setAddError('') }}
-            className="text-xs px-2 py-0.5 rounded transition-colors flex items-center gap-1"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: 'white',
-            }}
-            title="Add new repo"
-          >
-            + Add
-          </button>
+          <div className="flex items-center gap-1">
+            {ready.length >= 2 && (
+              <button
+                onClick={() => { setCompareMode(!compareMode); setSelectedRepos(new Set()) }}
+                className="text-xs px-2 py-0.5 rounded transition-colors"
+                style={{
+                  background: compareMode ? '#dc2626' : '#1e1e3a',
+                  color: 'white',
+                  border: `1px solid ${compareMode ? '#dc2626' : 'var(--border)'}`,
+                }}
+                title={compareMode ? 'Cancel compare' : 'Compare repos'}
+              >
+                {compareMode ? 'Cancel' : 'Compare'}
+              </button>
+            )}
+            <button
+              onClick={() => { setShowAddInput(!showAddInput); setAddError('') }}
+              className="text-xs px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: 'white',
+              }}
+              title="Add new repo"
+            >
+              + Add
+            </button>
+          </div>
         </div>
+
+        {/* Compare mode banner */}
+        {compareMode && (
+          <div className="mb-2 px-2">
+            <p className="text-xs text-indigo-300 mb-1">Select 2+ repos to compare:</p>
+            {selectedRepos.size >= 2 && (
+              <button
+                onClick={startMultiRepoChat}
+                className="w-full text-xs py-1.5 rounded-lg font-medium transition-colors"
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  color: 'white',
+                }}
+              >
+                Chat with {selectedRepos.size} repos
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Inline add repo form */}
         {showAddInput && (
@@ -251,30 +306,51 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
         {ready.map((r) => (
           <button
             key={r.id}
-            onClick={() => onSelectRepo(r.id, r.name)}
+            onClick={() => compareMode ? toggleRepoSelection(r.id) : onSelectRepo(r.id, r.name)}
             className="w-full text-left px-3 py-2.5 rounded-lg transition-colors"
             style={{
-              background: activeRepoId === r.id ? '#1e1e3a' : 'transparent',
-              border: activeRepoId === r.id ? '1px solid #3730a3' : '1px solid transparent',
+              background: compareMode
+                ? selectedRepos.has(r.id) ? '#1e1b4b' : 'transparent'
+                : activeRepoId === r.id ? '#1e1e3a' : 'transparent',
+              border: compareMode
+                ? selectedRepos.has(r.id) ? '1px solid #6366f1' : '1px solid transparent'
+                : activeRepoId === r.id ? '1px solid #3730a3' : '1px solid transparent',
             }}
             onMouseEnter={(e) => {
-              if (activeRepoId !== r.id) e.currentTarget.style.background = 'var(--muted)'
+              if (!compareMode && activeRepoId !== r.id) e.currentTarget.style.background = 'var(--muted)'
+              if (compareMode && !selectedRepos.has(r.id)) e.currentTarget.style.background = 'var(--muted)'
             }}
             onMouseLeave={(e) => {
-              if (activeRepoId !== r.id) e.currentTarget.style.background = 'transparent'
+              if (!compareMode && activeRepoId !== r.id) e.currentTarget.style.background = 'transparent'
+              if (compareMode && !selectedRepos.has(r.id)) e.currentTarget.style.background = 'transparent'
             }}
           >
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-xs">📁</span>
+              {compareMode ? (
+                <span
+                  className="w-4 h-4 rounded border flex items-center justify-center text-xs shrink-0"
+                  style={{
+                    borderColor: selectedRepos.has(r.id) ? '#6366f1' : 'var(--border)',
+                    background: selectedRepos.has(r.id) ? '#6366f1' : 'transparent',
+                    color: 'white',
+                  }}
+                >
+                  {selectedRepos.has(r.id) ? '✓' : ''}
+                </span>
+              ) : (
+                <span className="text-xs">📁</span>
+              )}
               <span className="text-xs font-medium text-white truncate">{r.name}</span>
             </div>
             <p className="text-xs ml-5 truncate" style={{ color: 'var(--muted-foreground)' }}>
               {r.owner} · {r.fileCount ?? 0} files · {r.commitCount ?? 0} commits
             </p>
-            <div className="ml-5 mt-1 flex items-center gap-2">
-              <ReIngestButton repoId={r.id} onDone={fetchRepos} />
-              <DeleteRepoButton repoId={r.id} repoName={r.name} onDeleted={fetchRepos} />
-            </div>
+            {!compareMode && (
+              <div className="ml-5 mt-1 flex items-center gap-2">
+                <ReIngestButton repoId={r.id} onDone={fetchRepos} />
+                <DeleteRepoButton repoId={r.id} repoName={r.name} onDeleted={fetchRepos} />
+              </div>
+            )}
           </button>
         ))}
       </div>

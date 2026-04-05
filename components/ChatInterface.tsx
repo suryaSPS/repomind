@@ -12,11 +12,13 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 interface ChatInterfaceProps {
   repoId: number
   repoName: string
+  repoIds?: number[]
+  repoNames?: string[]
   username: string
   initialSessionId?: number | null
 }
 
-const STARTER_QUESTIONS = [
+const SINGLE_REPO_QUESTIONS = [
   'How is authentication implemented?',
   'What are the main entry points of this app?',
   'Explain the folder structure and architecture',
@@ -24,7 +26,17 @@ const STARTER_QUESTIONS = [
   'Find all API endpoints and what they do',
 ]
 
-export default function ChatInterface({ repoId, repoName, username, initialSessionId }: ChatInterfaceProps) {
+const MULTI_REPO_QUESTIONS = [
+  'Compare the tech stacks of these repos',
+  'How does authentication differ between them?',
+  'What patterns or libraries do they share?',
+  'Compare the folder structure and architecture',
+  'Which repo has better test coverage?',
+]
+
+export default function ChatInterface({ repoId, repoName, repoIds, repoNames, username, initialSessionId }: ChatInterfaceProps) {
+  const isMultiRepo = repoIds && repoIds.length > 1
+  const displayName = isMultiRepo ? repoNames!.join(' + ') : repoName
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [sessionId, setSessionId] = useState<number | null>(initialSessionId ?? null)
@@ -52,7 +64,7 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
 
   const { messages: liveMessages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
-    body: { repoId, sessionId },
+    body: isMultiRepo ? { repoIds, sessionId } : { repoId, sessionId },
     onResponse(response: Response) {
       const sid = response.headers.get('X-Session-Id')
       if (sid) setSessionId(Number(sid))
@@ -109,9 +121,14 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
         >
           📁
         </div>
-        <span className="text-sm font-medium text-white">{repoName}</span>
+        <span className="text-sm font-medium text-white truncate">{displayName}</span>
+        {isMultiRepo && (
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#1e1b4b', color: '#a5b4fc' }}>
+            {repoIds!.length} repos
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
-          <ExportChatButton messages={messages} repoName={repoName} />
+          <ExportChatButton messages={messages} repoName={displayName} />
           <span
             className="text-xs px-2 py-0.5 rounded-full"
             style={{ background: '#14532d', color: '#4ade80' }}
@@ -133,13 +150,13 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
             </div>
             <h3 className="text-lg font-semibold text-white mb-1">
               Ask anything about{' '}
-              <span className="text-indigo-400">{repoName}</span>
+              <span className="text-indigo-400">{displayName}</span>
             </h3>
             <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
               I can trace bugs, explain decisions, find patterns, and onboard you in seconds.
             </p>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-              {STARTER_QUESTIONS.map((q) => (
+              {(isMultiRepo ? MULTI_REPO_QUESTIONS : SINGLE_REPO_QUESTIONS).map((q) => (
                 <button
                   key={q}
                   onClick={() => useStarterQuestion(q)}
@@ -221,7 +238,7 @@ export default function ChatInterface({ repoId, repoName, username, initialSessi
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask anything about ${repoName}… (Enter to send, Shift+Enter for newline)`}
+            placeholder={`Ask anything about ${displayName}… (Enter to send, Shift+Enter for newline)`}
             disabled={isLoading}
             rows={1}
             className="flex-1 resize-none min-h-[44px] max-h-[160px] text-sm py-3"

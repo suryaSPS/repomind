@@ -71,6 +71,121 @@ export async function searchCommitChunks(
 }
 
 /**
+ * Search code chunks across multiple repos at once.
+ */
+export async function searchCodeChunksMulti(
+  repoIds: number[],
+  queryEmbedding: number[],
+  limit = 5
+): Promise<CodeResult[]> {
+  if (repoIds.length === 0) return []
+  const vectorStr = `[${queryEmbedding.join(',')}]`
+  const placeholders = repoIds.map((_, i) => `$${i + 2}`).join(', ')
+  const result = await pool.query(
+    `SELECT
+       id, repo_id as "repoId", file_path as "filePath",
+       line_start as "lineStart", line_end as "lineEnd",
+       content, language,
+       1 - (embedding <=> $1::vector) as similarity
+     FROM code_chunks
+     WHERE repo_id IN (${placeholders})
+     ORDER BY embedding <=> $1::vector
+     LIMIT $${repoIds.length + 2}`,
+    [vectorStr, ...repoIds, limit]
+  )
+  return result.rows
+}
+
+/**
+ * Search commit chunks across multiple repos at once.
+ */
+export async function searchCommitChunksMulti(
+  repoIds: number[],
+  queryEmbedding: number[],
+  limit = 3
+): Promise<CommitResult[]> {
+  if (repoIds.length === 0) return []
+  const vectorStr = `[${queryEmbedding.join(',')}]`
+  const placeholders = repoIds.map((_, i) => `$${i + 2}`).join(', ')
+  const result = await pool.query(
+    `SELECT
+       id, repo_id as "repoId", hash, message, author, date,
+       files_changed as "filesChanged", diff,
+       1 - (embedding <=> $1::vector) as similarity
+     FROM commit_chunks
+     WHERE repo_id IN (${placeholders})
+     ORDER BY embedding <=> $1::vector
+     LIMIT $${repoIds.length + 2}`,
+    [vectorStr, ...repoIds, limit]
+  )
+  return result.rows
+}
+
+/** Read a file from DB across multiple repos (tries each). */
+export async function getFileFromDBMulti(
+  repoIds: number[],
+  filePath: string
+): Promise<{ repoId: number; content: string; language: string | null } | null> {
+  if (repoIds.length === 0) return null
+  const placeholders = repoIds.map((_, i) => `$${i + 1}`).join(', ')
+  const result = await pool.query(
+    `SELECT repo_id as "repoId", content, language FROM repo_files
+     WHERE repo_id IN (${placeholders}) AND file_path = $${repoIds.length + 1} LIMIT 1`,
+    [...repoIds, filePath]
+  )
+  return result.rows[0] ?? null
+}
+
+/** Grep files across multiple repos. */
+export async function grepFilesFromDBMulti(
+  repoIds: number[],
+  pattern: string,
+  limit = 10
+): Promise<{ repoId: number; filePath: string; lines: string[] }[]> {
+  if (repoIds.length === 0) return []
+  const placeholders = repoIds.map((_, i) => `$${i + 1}`).join(', ')
+  const result = await pool.query(
+    `SELECT repo_id as "repoId", file_path as "filePath", content FROM repo_files
+     WHERE repo_id IN (${placeholders}) AND content ~* $${repoIds.length + 1} LIMIT $${repoIds.length + 2}`,
+    [...repoIds, pattern, limit]
+  )
+  return result.rows.map((row: { repoId: number; filePath: string; content: string }) => {
+    const lines = row.content
+      .split('\n')
+      .map((line: string, i: number) => ({ line, num: i + 1 }))
+      .filter(({ line }: { line: string }) => new RegExp(pattern, 'i').test(line))
+      .slice(0, 5)
+      .map(({ line, num }: { line: string; num: number }) => `${num}: ${line}`)
+    return { repoId: row.repoId, filePath: row.filePath, lines }
+  })
+}
+
+/** List files across multiple repos. */
+export async function listFilesFromDBMulti(repoIds: number[], dirPrefix = ''): Promise<{ repoId: number; filePath: string }[]> {
+  if (repoIds.length === 0) return []
+  const placeholders = repoIds.map((_, i) => `$${i + 1}`).join(', ')
+  const result = await pool.query(
+    `SELECT DISTINCT repo_id as "repoId", file_path as "filePath" FROM repo_files
+     WHERE repo_id IN (${placeholders}) AND file_path LIKE $${repoIds.length + 1} ORDER BY file_path LIMIT 100`,
+    [...repoIds, dirPrefix ? `${dirPrefix}%` : '%']
+  )
+  return result.rows
+}
+
+/** Get a commit by hash across multiple repos. */
+export async function getCommitFromDBMulti(repoIds: number[], hash: string): Promise<CommitResult | null> {
+  if (repoIds.length === 0) return null
+  const placeholders = repoIds.map((_, i) => `$${i + 1}`).join(', ')
+  const result = await pool.query(
+    `SELECT id, repo_id as "repoId", hash, message, author, date,
+            files_changed as "filesChanged", diff, 0 as similarity
+     FROM commit_chunks WHERE repo_id IN (${placeholders}) AND hash LIKE $${repoIds.length + 1} LIMIT 1`,
+    [...repoIds, `${hash}%`]
+  )
+  return result.rows[0] ?? null
+}
+
+/**
  * Insert code chunks in batch (with embeddings).
  */
 export async function insertCodeChunks(

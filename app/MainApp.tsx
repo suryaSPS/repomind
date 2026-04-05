@@ -12,23 +12,41 @@ interface MainAppProps {
 
 export default function MainApp({ username }: MainAppProps) {
   const [activeRepo, setActiveRepo] = useState<{ id: number; name: string } | null>(null)
+  const [multiRepo, setMultiRepo] = useState<{ ids: number[]; names: string[] } | null>(null)
   const [restoredSessionId, setRestoredSessionId] = useState<number | null>(null)
 
   function handleRepoReady(repoId: number, repoName: string) {
     setRestoredSessionId(null)
+    setMultiRepo(null)
     setActiveRepo({ id: repoId, name: repoName })
     window.dispatchEvent(new Event('repomind:refresh-repos'))
   }
 
   function handleSelectRepo(id: number, name: string) {
     setRestoredSessionId(null)
+    setMultiRepo(null)
     setActiveRepo({ id, name })
   }
 
   function handleRestoreSession(sessionId: number, repoId: number, repoName: string) {
+    setMultiRepo(null)
     setRestoredSessionId(sessionId)
     setActiveRepo({ id: repoId, name: repoName })
   }
+
+  function handleMultiRepoChat(repoIds: number[], repoNames: string[]) {
+    setRestoredSessionId(null)
+    setActiveRepo({ id: repoIds[0], name: repoNames.join(' + ') })
+    setMultiRepo({ ids: repoIds, names: repoNames })
+  }
+
+  function handleGoHome() {
+    setActiveRepo(null)
+    setMultiRepo(null)
+    setRestoredSessionId(null)
+  }
+
+  const isActive = activeRepo || multiRepo
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
@@ -37,17 +55,20 @@ export default function MainApp({ username }: MainAppProps) {
         onSelectRepo={handleSelectRepo}
         onRestoreSession={handleRestoreSession}
         onAddRepo={() => {}}
-        onGoHome={() => { setActiveRepo(null); setRestoredSessionId(null) }}
+        onGoHome={handleGoHome}
+        onMultiRepoChat={handleMultiRepoChat}
         username={username}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <ErrorBoundary>
-        {activeRepo ? (
+        {isActive ? (
           <ChatInterface
-            key={restoredSessionId ?? activeRepo.id}
-            repoId={activeRepo.id}
-            repoName={activeRepo.name}
+            key={multiRepo ? multiRepo.ids.join('-') : (restoredSessionId ?? activeRepo!.id)}
+            repoId={multiRepo ? multiRepo.ids[0] : activeRepo!.id}
+            repoName={multiRepo ? multiRepo.names.join(' + ') : activeRepo!.name}
+            repoIds={multiRepo?.ids}
+            repoNames={multiRepo?.names}
             username={username}
             initialSessionId={restoredSessionId}
           />
@@ -87,9 +108,9 @@ function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) =
           { icon: '📄', label: 'File + line citations' },
           { icon: '🔖', label: 'Git history tracing' },
           { icon: '🔍', label: 'Semantic code search' },
-          { icon: '🤖', label: 'Claude 3.7 agent' },
+          { icon: '🤖', label: 'Claude Haiku agent' },
           { icon: '⚡', label: 'Streaming answers' },
-          { icon: '🕑', label: 'Chat history' },
+          { icon: '🔀', label: 'Multi-repo compare' },
         ].map(({ icon, label }) => (
           <div
             key={label}

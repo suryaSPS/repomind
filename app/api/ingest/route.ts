@@ -32,21 +32,26 @@ export async function POST(req: Request) {
     return new Response('Invalid GitHub URL', { status: 400 })
   }
 
-  // Check if already ingested and ready
+  const userId = Number(session.user?.id)
+
+  // Check if this user already has this repo indexed
   const existing = await db
     .select()
     .from(repos)
     .where(eq(repos.url, url.trim()))
     .limit(1)
 
+  // Filter to repos owned by this user
+  const userRepo = existing.find((r) => r.userId === userId || r.userId === null)
+
   let repoId: number
 
-  if (existing.length > 0 && existing[0].status === 'ready') {
+  if (userRepo && userRepo.status === 'ready') {
     // Already done — return immediately
     return new Response(
       createStream(async (send) => {
         send({ stage: 'Already indexed!', percent: 100 })
-        send({ stage: 'done', percent: 100, repoId: existing[0].id })
+        send({ stage: 'done', percent: 100, repoId: userRepo.id })
       }),
       {
         headers: {
@@ -58,8 +63,8 @@ export async function POST(req: Request) {
     )
   }
 
-  if (existing.length > 0) {
-    repoId = existing[0].id
+  if (userRepo) {
+    repoId = userRepo.id
   } else {
     const [inserted] = await db
       .insert(repos)
@@ -67,6 +72,7 @@ export async function POST(req: Request) {
         url: url.trim(),
         name: parsed.name,
         owner: parsed.owner,
+        userId,
         status: 'pending',
       })
       .returning({ id: repos.id })

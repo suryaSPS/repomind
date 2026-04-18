@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
+import Twitter from 'next-auth/providers/twitter'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
@@ -16,6 +17,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    Twitter({
+      clientId: process.env.TWITTER_CLIENT_ID!,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
     }),
     Credentials({
       credentials: {
@@ -51,7 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'github' || account?.provider === 'google') {
+      if (account?.provider === 'github' || account?.provider === 'google' || account?.provider === 'twitter') {
         // Auto-create or update user on OAuth login
         const provider = account.provider
         const username = user.name ?? user.email?.split('@')[0] ?? `${provider}-user`

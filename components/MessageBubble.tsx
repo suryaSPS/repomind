@@ -232,17 +232,17 @@ function CitationChip({ citation, repoId }: { citation: string; repoId?: number 
         title={repoId ? `Open ${citation}` : `Copy: ${citation}`}
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono mx-0.5 transition-all"
         style={{
-          background: '#1e1e3a',
-          color: '#818cf8',
-          border: '1px solid #3730a3',
+          background: 'var(--bg-muted)',
+          color: 'var(--brand)',
+          border: '1px solid var(--border)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#2d2d5a'
-          e.currentTarget.style.borderColor = '#6366f1'
+          e.currentTarget.style.background = 'var(--bg-elevated)'
+          e.currentTarget.style.borderColor = 'var(--brand)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#1e1e3a'
-          e.currentTarget.style.borderColor = '#3730a3'
+          e.currentTarget.style.background = 'var(--bg-muted)'
+          e.currentTarget.style.borderColor = 'var(--border)'
         }}
       >
         <span>📄</span>
@@ -269,7 +269,7 @@ export default function MessageBubble({ role, content, username, repoId }: Messa
       <div className="flex justify-end fade-in">
         <div
           className="max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white"
-          style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+          style={{ background: 'var(--brand-gradient)', boxShadow: '0 2px 12px var(--brand-glow)' }}
         >
           <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
@@ -281,16 +281,19 @@ export default function MessageBubble({ role, content, username, repoId }: Messa
     <div className="flex gap-3 fade-in">
       {/* Avatar */}
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 mt-0.5"
-        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+        style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
       >
-        🔍
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-500 mb-1 font-medium">RepoMind</p>
+        <p className="text-xs font-semibold mb-1.5 tracking-wide" style={{ color: 'var(--fg-subtle)', letterSpacing: '0.05em' }}>REPOMIND</p>
         <div
           className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
           <div className="prose prose-invert max-w-none">
             {renderContent(content, repoId)}
@@ -305,22 +308,41 @@ export function ThinkingIndicator() {
   return (
     <div className="flex gap-3 fade-in">
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
-        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 relative"
+        style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
       >
-        🔍
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        {/* Subtle pulse ring on the avatar */}
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{ animation: 'pulse-ring 2s ease-out infinite', border: '1.5px solid var(--brand)', borderRadius: '50%', opacity: 0.6 }}
+        />
       </div>
       <div
         className="rounded-2xl rounded-tl-sm px-4 py-3"
-        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1 items-center h-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 typing-dot" />
+        <div className="flex items-center gap-3">
+          {/* Waveform bars — the unique loader */}
+          <div className="flex items-center gap-0.5 h-5">
+            {[18, 10, 22, 14, 20, 8].map((h, i) => (
+              <span
+                key={i}
+                className="wave-bar"
+                style={{
+                  height: `${h}px`,
+                  background: `linear-gradient(to top, var(--brand), var(--brand-2))`,
+                  opacity: 0.85,
+                }}
+              />
+            ))}
           </div>
-          <span className="text-xs text-slate-500">Thinking...</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--fg-muted)' }}>
+            Searching codebase…
+          </span>
         </div>
       </div>
     </div>

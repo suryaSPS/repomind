@@ -83,42 +83,69 @@ export default function MainApp({ username }: MainAppProps) {
 
 function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) => void }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8">
-      <div className="text-center max-w-lg mb-10">
-        <div
-          className="inline-flex w-20 h-20 rounded-3xl items-center justify-center text-4xl mb-6"
-          style={{ background: 'linear-gradient(135deg, #1e1e3a, #2d1f52)' }}
-        >
-          🔍
+    <div className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+      {/* Background glow */}
+      <div
+        className="absolute pointer-events-none morph-blob"
+        style={{ width: 600, height: 600, top: '10%', left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 65%)', borderRadius: '50%', filter: 'blur(60px)' }}
+      />
+
+      <div className="text-center max-w-lg mb-10 relative z-10">
+        <div className="relative inline-flex mb-6">
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center relative"
+            style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
+          >
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="11" y1="8" x2="11" y2="14"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            <span
+              className="absolute inset-0 rounded-3xl"
+              style={{ animation: 'pulse-ring 3s ease-out infinite', border: '2px solid var(--brand)', borderRadius: 'inherit', opacity: 0.5 }}
+            />
+          </div>
         </div>
-        <h2 className="text-3xl font-bold text-white mb-3">Your AI Code Archaeologist</h2>
-        <p className="text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+
+        <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--fg)' }}>
+          Your AI{' '}
+          <span className="gradient-text">Code Archaeologist</span>
+        </h2>
+        <p className="text-base leading-relaxed" style={{ color: 'var(--fg-muted)' }}>
           Paste any public GitHub repo. RepoMind indexes the full codebase and git history so
-          you can ask questions, trace bugs, and understand decisions — with cited file and line
-          references.
+          you can ask questions, trace bugs, and understand decisions — with cited file and line references.
         </p>
       </div>
 
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-xl relative z-10">
         <RepoInput onRepoReady={onRepoReady} />
       </div>
 
-      <div className="flex flex-wrap gap-3 justify-center mt-8 max-w-lg">
+      <div className="flex flex-wrap gap-2.5 justify-center mt-8 max-w-lg relative z-10">
         {[
-          { icon: '📄', label: 'File + line citations' },
-          { icon: '🔖', label: 'Git history tracing' },
-          { icon: '🔍', label: 'Semantic code search' },
-          { icon: '🤖', label: 'Claude Haiku agent' },
-          { icon: '⚡', label: 'Streaming answers' },
-          { icon: '🔀', label: 'Multi-repo compare' },
-        ].map(({ icon, label }) => (
+          { label: 'File + line citations' },
+          { label: 'Git history tracing' },
+          { label: 'Semantic code search' },
+          { label: 'Claude Haiku agent' },
+          { label: 'Streaming answers' },
+          { label: 'Multi-repo compare' },
+        ].map(({ label }) => (
           <div
             key={label}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border"
-            style={{ background: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+            style={{
+              background: 'var(--bg-surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--fg-muted)',
+            }}
           >
-            <span>{icon}</span>
-            <span>{label}</span>
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: 'var(--brand)' }}
+            />
+            {label}
           </div>
         ))}
       </div>

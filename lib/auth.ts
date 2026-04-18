@@ -106,10 +106,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true
     },
-    jwt({ token, user }) {
+    jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
         token.name = user.name
+      }
+      // Store GitHub access token in JWT so we can use it for GitHub API calls
+      if (account?.provider === 'github' && account.access_token) {
+        token.githubAccessToken = account.access_token
       }
       return token
     },
@@ -117,6 +121,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string
         session.user.name = token.name as string
+      }
+      // Expose GitHub token to server-side session
+      if (token.githubAccessToken) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(session as any).githubAccessToken = token.githubAccessToken
       }
       return session
     },

@@ -131,6 +131,31 @@ export const repoFiles = pgTable(
   ]
 )
 
+// ─── OAuth Accounts ───────────────────────────────────────────────────────────
+// One row per provider+account — safe server-side store for access tokens.
+// Tokens never go into the JWT or client-visible session.
+export const oauthAccounts = pgTable(
+  'oauth_accounts',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: varchar('provider', { length: 50 }).notNull(),          // 'github' | 'google'
+    providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(), // GitHub numeric id / Google sub
+    accessToken: text('access_token'),   // stored server-side only, never in JWT
+    refreshToken: text('refresh_token'),
+    expiresAt: timestamp('expires_at'),
+    scope: varchar('scope', { length: 500 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('oauth_accounts_user_idx').on(table.userId),
+    index('oauth_accounts_provider_idx').on(table.provider, table.providerAccountId),
+  ]
+)
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
@@ -141,3 +166,5 @@ export type Message = typeof messages.$inferSelect
 export type CodeChunk = typeof codeChunks.$inferSelect
 export type CommitChunk = typeof commitChunks.$inferSelect
 export type RepoFile = typeof repoFiles.$inferSelect
+export type OAuthAccount = typeof oauthAccounts.$inferSelect
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert

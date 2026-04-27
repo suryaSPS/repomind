@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 
 interface CitationModalProps {
-  citation: string       // e.g. "src/auth/jwt.ts:45-67"
+  citation: string
   repoId: number
   onClose: () => void
 }
@@ -13,7 +13,6 @@ export default function CitationModal({ citation, repoId, onClose }: CitationMod
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Parse "src/auth/jwt.ts:45-67" → { filePath, lineStart, lineEnd }
   const match = citation.match(/^(.+):(\d+)(?:-(\d+))?$/)
   const filePath = match?.[1] ?? citation
   const lineStart = match?.[2] ? Number(match[2]) : null
@@ -30,7 +29,6 @@ export default function CitationModal({ citation, repoId, onClose }: CitationMod
       .catch(() => { setError('Failed to load file'); setLoading(false) })
   }, [filePath, repoId])
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
@@ -41,31 +39,36 @@ export default function CitationModal({ citation, repoId, onClose }: CitationMod
   const highlightStart = lineStart ? lineStart - 1 : 0
   const highlightEnd = lineEnd ? lineEnd - 1 : highlightStart
 
-  const ext = filePath.split('.').pop() ?? ''
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-2xl overflow-hidden"
-        style={{ background: '#0d0d1a', border: '1px solid #1e1e2e' }}
+        className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-xl overflow-hidden expand-in"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3 border-b"
-          style={{ borderColor: '#1e1e2e' }}
+          style={{ borderColor: 'var(--border)', background: 'var(--bg-surface)' }}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm">📄</span>
-            <span className="text-sm font-mono text-slate-300 truncate">{filePath}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--fg-muted)', flexShrink: 0 }}>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span
+              className="text-sm font-mono truncate"
+              style={{ color: 'var(--fg-secondary)' }}
+            >
+              {filePath}
+            </span>
             {lineStart && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full shrink-0"
-                style={{ background: '#1e1e3a', color: '#818cf8' }}
+                className="text-xs px-2 py-0.5 rounded-md shrink-0 font-mono"
+                style={{ background: 'var(--brand-glow-sm)', color: 'var(--brand)', border: '1px solid var(--brand-glow)' }}
               >
                 :{lineStart}{lineEnd !== lineStart ? `–${lineEnd}` : ''}
               </span>
@@ -73,47 +76,64 @@ export default function CitationModal({ citation, repoId, onClose }: CitationMod
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white transition-colors ml-3 shrink-0 text-lg leading-none"
+            className="ml-3 shrink-0 text-xl leading-none transition-colors"
+            style={{ color: 'var(--fg-subtle)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--fg)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--fg-subtle)' }}
           >
             ×
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" style={{ background: 'var(--bg-input)' }}>
           {loading && (
-            <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+            <div className="flex items-center justify-center py-16 text-sm" style={{ color: 'var(--fg-muted)' }}>
               Loading…
             </div>
           )}
           {error && (
-            <div className="flex items-center justify-center py-16 text-red-400 text-sm">
+            <div className="flex items-center justify-center py-16 text-sm" style={{ color: 'var(--error)' }}>
               {error}
             </div>
           )}
           {content && (
-            <div className="text-xs font-mono">
+            <div style={{ fontSize: '12px', fontFamily: 'var(--font-geist-mono, monospace)' }}>
               {lines.map((line, i) => {
                 const lineNum = i + 1
                 const isHighlighted = lineNum >= highlightStart + 1 && lineNum <= highlightEnd + 1
                 return (
                   <div
                     key={i}
-                    className="flex"
                     style={{
-                      background: isHighlighted ? 'rgba(99,102,241,0.15)' : 'transparent',
-                      borderLeft: isHighlighted ? '2px solid #6366f1' : '2px solid transparent',
+                      display: 'flex',
+                      background: isHighlighted ? 'var(--brand-glow-sm)' : 'transparent',
+                      borderLeft: isHighlighted ? '2px solid var(--brand)' : '2px solid transparent',
                     }}
                   >
                     <span
-                      className="select-none w-12 shrink-0 text-right pr-4 py-0.5"
-                      style={{ color: isHighlighted ? '#818cf8' : '#374151' }}
+                      style={{
+                        userSelect: 'none',
+                        width: 44,
+                        flexShrink: 0,
+                        textAlign: 'right',
+                        paddingRight: 14,
+                        paddingTop: 2,
+                        paddingBottom: 2,
+                        color: isHighlighted ? 'var(--brand)' : 'var(--fg-subtle)',
+                      }}
                     >
                       {lineNum}
                     </span>
                     <span
-                      className="flex-1 py-0.5 pr-4 whitespace-pre"
-                      style={{ color: isHighlighted ? '#e2e8f0' : '#94a3b8' }}
+                      style={{
+                        flex: 1,
+                        paddingTop: 2,
+                        paddingBottom: 2,
+                        paddingRight: 16,
+                        whiteSpace: 'pre',
+                        color: isHighlighted ? 'var(--fg)' : 'var(--fg-muted)',
+                      }}
                     >
                       {line}
                     </span>

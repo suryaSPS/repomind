@@ -47,22 +47,31 @@ export default function ReIngestButton({ repoId, onDone }: ReIngestButtonProps) 
       onClick={handleReIngest}
       disabled={loading}
       title="Re-index this repo"
-      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg transition-all"
       style={{
-        background: loading ? '#1e1e2e' : 'transparent',
-        color: loading ? '#6366f1' : '#64748b',
-        border: '1px solid #1e1e2e',
+        background: 'transparent',
+        color: loading ? 'var(--brand)' : 'var(--fg-muted)',
+        border: '1px solid var(--border)',
       }}
       onMouseEnter={(e) => {
-        if (!loading) e.currentTarget.style.color = '#a5b4fc'
+        if (!loading) {
+          e.currentTarget.style.color = 'var(--brand)'
+          e.currentTarget.style.borderColor = 'var(--brand)'
+        }
       }}
       onMouseLeave={(e) => {
-        if (!loading) e.currentTarget.style.color = '#64748b'
+        if (!loading) {
+          e.currentTarget.style.color = 'var(--fg-muted)'
+          e.currentTarget.style.borderColor = 'var(--border)'
+        }
       }}
     >
       {loading ? (
         <>
-          <span className="w-3 h-3 border border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <span
+            className="w-3 h-3 rounded-full animate-spin shrink-0"
+            style={{ border: '1.5px solid var(--brand)', borderTopColor: 'transparent' }}
+          />
           <span>{progress}</span>
         </>
       ) : (

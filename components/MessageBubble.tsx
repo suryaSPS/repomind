@@ -10,12 +10,9 @@ interface MessageBubbleProps {
   repoId?: number
 }
 
-// Regex to find citations like `src/auth/jwt.ts:45-67` or `src/auth/jwt.ts:45`
 const CITATION_REGEX = /`([^`]+\.[a-z]+:\d+(?:-\d+)?)`/g
 
-// Process inline markdown: bold, inline code, and citations
 function processInline(text: string, keyPrefix: string, repoId?: number): React.ReactNode[] {
-  // Match bold (**text**), inline code (`code`), and ❌/✅ markers
   const tokenRegex = /\*\*(.*?)\*\*|`([^`]+)`|([❌✅])/g
   const parts: React.ReactNode[] = []
   let last = 0
@@ -25,16 +22,29 @@ function processInline(text: string, keyPrefix: string, repoId?: number): React.
     if (m.index > last) parts.push(text.slice(last, m.index))
 
     if (m[1] !== undefined) {
-      // Bold
-      parts.push(<strong key={`${keyPrefix}-b-${m.index}`} className="text-indigo-300 font-semibold">{m[1]}</strong>)
+      parts.push(
+        <strong key={`${keyPrefix}-b-${m.index}`} style={{ color: 'var(--fg)', fontWeight: 600 }}>
+          {m[1]}
+        </strong>
+      )
     } else if (m[2] !== undefined) {
-      // Inline code — check if it's a file citation
       const isCitation = /[^`]+\.[a-z]+:\d+/.test(m[2])
       if (isCitation) {
         parts.push(<CitationChip key={`${keyPrefix}-cite-${m.index}`} citation={m[2]} repoId={repoId} />)
       } else {
         parts.push(
-          <code key={`${keyPrefix}-ic-${m.index}`} className="bg-slate-800 text-indigo-300 px-1.5 py-0.5 rounded text-sm font-mono">
+          <code
+            key={`${keyPrefix}-ic-${m.index}`}
+            style={{
+              background: 'var(--bg-elevated)',
+              color: 'var(--brand)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              border: '1px solid var(--border)',
+              fontSize: '0.82em',
+              fontFamily: 'var(--font-geist-mono, monospace)',
+            }}
+          >
             {m[2]}
           </code>
         )
@@ -48,9 +58,7 @@ function processInline(text: string, keyPrefix: string, repoId?: number): React.
   return parts
 }
 
-// Render markdown-lite: code blocks, headings, lists, paragraphs with bold/code/citations
 function renderContent(content: string, repoId?: number) {
-  // Split by code blocks first
   const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g
   const parts: React.ReactNode[] = []
   let lastIndex = 0
@@ -66,8 +74,21 @@ function renderContent(content: string, repoId?: number) {
       )
     }
     parts.push(
-      <pre key={`code-${blockMatch.index}`} className="my-3 text-sm overflow-x-auto bg-slate-900 rounded-lg p-3">
-        <code className={`language-${blockMatch[1]}`}>{blockMatch[2]}</code>
+      <pre
+        key={`code-${blockMatch.index}`}
+        style={{
+          margin: '10px 0',
+          fontSize: '12.5px',
+          overflowX: 'auto',
+          background: 'var(--bg-input)',
+          borderRadius: '8px',
+          padding: '12px 14px',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <code className={`language-${blockMatch[1]}`} style={{ color: 'var(--fg-secondary)' }}>
+          {blockMatch[2]}
+        </code>
       </pre>
     )
     lastIndex = blockMatch.index + blockMatch[0].length
@@ -75,25 +96,21 @@ function renderContent(content: string, repoId?: number) {
 
   if (lastIndex < content.length) {
     const remaining = content.slice(lastIndex)
-
-    // Split into lines, then process each line by type
     const lines = remaining.split('\n')
     let i = 0
     while (i < lines.length) {
       const line = lines[i]
       const trimmed = line.trim()
 
-      // Empty line — skip
       if (!trimmed) { i++; continue }
 
-      // Horizontal rule
       if (/^[-*_]{3,}$/.test(trimmed)) {
-        parts.push(<hr key={`hr-${i}`} className="border-slate-700 my-4" />)
+        parts.push(<hr key={`hr-${i}`} style={{ borderColor: 'var(--border)', margin: '14px 0' }} />)
         i++
         continue
       }
 
-      // Table — detect lines starting with |
+      // Table
       if (/^\|.+\|$/.test(trimmed)) {
         const tableLines: string[] = []
         while (i < lines.length && /^\|.+\|$/.test(lines[i].trim())) {
@@ -101,20 +118,18 @@ function renderContent(content: string, repoId?: number) {
           i++
         }
         if (tableLines.length >= 2) {
-          // Parse header
           const headerCells = tableLines[0].split('|').filter(Boolean).map(c => c.trim())
-          // Skip separator row (|---|---|)
           const startRow = /^[-:\s|]+$/.test(tableLines[1]) ? 2 : 1
           const bodyRows = tableLines.slice(startRow).map(row =>
             row.split('|').filter(Boolean).map(c => c.trim())
           )
           parts.push(
-            <div key={`table-${i}`} className="my-3 overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
-              <table className="w-full text-xs">
+            <div key={`table-${i}`} style={{ margin: '10px 0', overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: '#1e1e3a' }}>
+                  <tr style={{ background: 'var(--bg-surface)' }}>
                     {headerCells.map((cell, ci) => (
-                      <th key={ci} className="px-3 py-2 text-left font-semibold text-slate-300 border-b" style={{ borderColor: 'var(--border)' }}>
+                      <th key={ci} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--fg-secondary)', borderBottom: '1px solid var(--border)' }}>
                         {processInline(cell, `th-${i}-${ci}`, repoId)}
                       </th>
                     ))}
@@ -122,9 +137,9 @@ function renderContent(content: string, repoId?: number) {
                 </thead>
                 <tbody>
                   {bodyRows.map((row, ri) => (
-                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : '#0f0f1a' }}>
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'transparent' : 'var(--bg-muted)' }}>
                       {row.map((cell, ci) => (
-                        <td key={ci} className="px-3 py-2 text-slate-300 border-b" style={{ borderColor: 'var(--border)' }}>
+                        <td key={ci} style={{ padding: '7px 12px', color: 'var(--fg-secondary)', borderBottom: '1px solid var(--border-muted)' }}>
                           {processInline(cell, `td-${i}-${ri}-${ci}`, repoId)}
                         </td>
                       ))}
@@ -142,9 +157,9 @@ function renderContent(content: string, repoId?: number) {
       if (/^#{1,3}\s/.test(trimmed)) {
         const level = trimmed.match(/^(#+)/)?.[1].length ?? 1
         const text = trimmed.replace(/^#+\s/, '')
-        const sizes = ['text-xl', 'text-lg', 'text-base']
+        const sizes = ['1.1rem', '1rem', '0.925rem'] as const
         parts.push(
-          <p key={`h-${i}`} className={`${sizes[Math.min(level - 1, 2)]} font-semibold text-white mt-4 mb-1`}>
+          <p key={`h-${i}`} style={{ fontSize: sizes[Math.min(level - 1, 2)], fontWeight: 600, color: 'var(--fg)', margin: '14px 0 4px' }}>
             {processInline(text, `h-${i}`, repoId)}
           </p>
         )
@@ -152,7 +167,7 @@ function renderContent(content: string, repoId?: number) {
         continue
       }
 
-      // Unordered list — collect consecutive list items
+      // Unordered list
       if (/^[-*]\s/.test(trimmed)) {
         const items: string[] = []
         while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
@@ -160,16 +175,16 @@ function renderContent(content: string, repoId?: number) {
           i++
         }
         parts.push(
-          <ul key={`ul-${i}`} className="list-disc list-inside space-y-1 my-2 text-slate-300">
+          <ul key={`ul-${i}`} style={{ listStyleType: 'disc', paddingLeft: '1.25rem', margin: '6px 0', color: 'var(--fg-secondary)' }}>
             {items.map((item, j) => (
-              <li key={j}>{processInline(item, `li-${i}-${j}`, repoId)}</li>
+              <li key={j} style={{ marginBottom: '3px' }}>{processInline(item, `li-${i}-${j}`, repoId)}</li>
             ))}
           </ul>
         )
         continue
       }
 
-      // Ordered list — collect consecutive numbered items
+      // Ordered list
       if (/^\d+\.\s/.test(trimmed)) {
         const items: string[] = []
         while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
@@ -177,16 +192,16 @@ function renderContent(content: string, repoId?: number) {
           i++
         }
         parts.push(
-          <ol key={`ol-${i}`} className="list-decimal list-inside space-y-1 my-2 text-slate-300">
+          <ol key={`ol-${i}`} style={{ listStyleType: 'decimal', paddingLeft: '1.25rem', margin: '6px 0', color: 'var(--fg-secondary)' }}>
             {items.map((item, j) => (
-              <li key={j}>{processInline(item, `oli-${i}-${j}`, repoId)}</li>
+              <li key={j} style={{ marginBottom: '3px' }}>{processInline(item, `oli-${i}-${j}`, repoId)}</li>
             ))}
           </ol>
         )
         continue
       }
 
-      // Regular paragraph — collect consecutive non-special lines
+      // Paragraph
       const paraLines: string[] = []
       while (
         i < lines.length &&
@@ -200,7 +215,7 @@ function renderContent(content: string, repoId?: number) {
       }
       if (paraLines.length > 0) {
         parts.push(
-          <p key={`p-${i}`} className="my-1.5 text-slate-200 leading-relaxed">
+          <p key={`p-${i}`} style={{ margin: '5px 0', color: 'var(--fg-secondary)', lineHeight: 1.7 }}>
             {processInline(paraLines.join('\n'), `p-${i}`, repoId)}
           </p>
         )
@@ -230,25 +245,30 @@ function CitationChip({ citation, repoId }: { citation: string; repoId?: number 
       <button
         onClick={handleClick}
         title={repoId ? `Open ${citation}` : `Copy: ${citation}`}
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono mx-0.5 transition-all"
         style={{
-          background: 'var(--bg-muted)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 7px',
+          borderRadius: '5px',
+          fontSize: '11.5px',
+          fontFamily: 'var(--font-geist-mono, monospace)',
+          margin: '0 2px',
+          background: 'var(--bg-surface)',
           color: 'var(--brand)',
           border: '1px solid var(--border)',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-elevated)'
-          e.currentTarget.style.borderColor = 'var(--brand)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--bg-muted)'
-          e.currentTarget.style.borderColor = 'var(--border)'
-        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--brand)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)' }}
       >
-        <span>📄</span>
-        <span>{citation}</span>
-        {copied && <span className="text-green-400">✓</span>}
-        {repoId && <span className="text-indigo-400 opacity-60">↗</span>}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+        {citation}
+        {copied && <span style={{ color: 'var(--success)' }}>✓</span>}
+        {repoId && !copied && <span style={{ opacity: 0.5 }}>↗</span>}
       </button>
       {modalOpen && repoId && (
         <CitationModal
@@ -268,10 +288,17 @@ export default function MessageBubble({ role, content, username, repoId }: Messa
     return (
       <div className="flex justify-end fade-in">
         <div
-          className="max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white"
-          style={{ background: 'var(--brand-gradient)', boxShadow: '0 2px 12px var(--brand-glow)' }}
+          style={{
+            maxWidth: '75%',
+            borderRadius: '16px 16px 4px 16px',
+            padding: '10px 14px',
+            fontSize: '14px',
+            color: 'white',
+            background: 'var(--brand)',
+            lineHeight: 1.6,
+          }}
         >
-          <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{content}</p>
         </div>
       </div>
     )
@@ -281,19 +308,33 @@ export default function MessageBubble({ role, content, username, repoId }: Messa
     <div className="flex gap-3 fade-in">
       {/* Avatar */}
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-        style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: '50%',
+          flexShrink: 0,
+          marginTop: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold mb-1.5 tracking-wide" style={{ color: 'var(--fg-subtle)', letterSpacing: '0.05em' }}>REPOMIND</p>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div
-          className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          style={{
+            borderRadius: '4px 16px 16px 16px',
+            padding: '12px 16px',
+            fontSize: '14px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+          }}
         >
           <div className="prose prose-invert max-w-none">
             {renderContent(content, repoId)}
@@ -308,39 +349,43 @@ export function ThinkingIndicator() {
   return (
     <div className="flex gap-3 fade-in">
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 relative"
-        style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: '50%',
+          flexShrink: 0,
+          marginTop: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        {/* Subtle pulse ring on the avatar */}
-        <span
-          className="absolute inset-0 rounded-full"
-          style={{ animation: 'pulse-ring 2s ease-out infinite', border: '1.5px solid var(--brand)', borderRadius: '50%', opacity: 0.6 }}
-        />
       </div>
       <div
-        className="rounded-2xl rounded-tl-sm px-4 py-3"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{
+          borderRadius: '4px 16px 16px 16px',
+          padding: '10px 14px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+        }}
       >
-        <div className="flex items-center gap-3">
-          {/* Waveform bars — the unique loader */}
-          <div className="flex items-center gap-0.5 h-5">
-            {[18, 10, 22, 14, 20, 8].map((h, i) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 18 }}>
+            {[16, 10, 20, 12, 18, 8].map((h, i) => (
               <span
                 key={i}
                 className="wave-bar"
-                style={{
-                  height: `${h}px`,
-                  background: `linear-gradient(to top, var(--brand), var(--brand-2))`,
-                  opacity: 0.85,
-                }}
+                style={{ height: `${h}px`, background: 'var(--brand)', opacity: 0.8 }}
               />
             ))}
           </div>
-          <span className="text-xs font-medium" style={{ color: 'var(--fg-muted)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--fg-muted)' }}>
             Searching codebase…
           </span>
         </div>

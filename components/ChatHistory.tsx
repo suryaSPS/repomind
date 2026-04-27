@@ -42,7 +42,7 @@ export default function ChatHistory({ onRestoreSession }: ChatHistoryProps) {
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-lg transition-colors"
         style={{ color: 'var(--muted-foreground)' }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#a5b4fc')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--brand)')}
         onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted-foreground)')}
       >
         <span className="font-medium">RECENT CHATS</span>
@@ -61,7 +61,7 @@ export default function ChatHistory({ onRestoreSession }: ChatHistoryProps) {
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs text-slate-300 font-medium truncate max-w-[120px]">
+                <span className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'var(--fg-secondary)' }}>
                   {s.repoName}
                 </span>
                 <span className="text-xs shrink-0 ml-1" style={{ color: 'var(--muted-foreground)' }}>

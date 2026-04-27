@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { auth, getGitHubToken } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { repos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -18,7 +18,7 @@ function parseGithubUrl(url: string): { owner: string; name: string } | null {
 
 export async function POST(req: Request) {
   const session = await auth()
-  if (!session) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 })
   }
 
@@ -32,7 +32,11 @@ export async function POST(req: Request) {
     return new Response('Invalid GitHub URL', { status: 400 })
   }
 
-  const userId = Number(session.user?.id)
+  const userId = Number(session.user.id)
+
+  // Look up the user's GitHub OAuth token server-side (never from session/JWT)
+  // This enables ingesting private repos the user has access to
+  const userGitHubToken = await getGitHubToken(userId)
 
   // Check if this user already has this repo indexed
   const existing = await db
@@ -41,13 +45,11 @@ export async function POST(req: Request) {
     .where(eq(repos.url, url.trim()))
     .limit(1)
 
-  // Filter to repos owned by this user
   const userRepo = existing.find((r) => r.userId === userId || r.userId === null)
 
   let repoId: number
 
   if (userRepo && userRepo.status === 'ready') {
-    // Already done — return immediately
     return new Response(
       createStream(async (send) => {
         send({ stage: 'Already indexed!', percent: 100 })
@@ -79,12 +81,11 @@ export async function POST(req: Request) {
     repoId = inserted.id
   }
 
-  // Stream progress via SSE
   const stream = createStream(async (send) => {
     try {
       await ingestRepo(repoId, url.trim(), (progress) => {
         send(progress)
-      })
+      }, userGitHubToken)
       send({ stage: 'done', percent: 100, repoId })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'

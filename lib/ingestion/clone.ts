@@ -30,12 +30,30 @@ export function getRepoPath(url: string): string {
 }
 
 /**
+ * Build GitHub API request headers.
+ * Prefer the user's own OAuth token (allows private repos they have access to).
+ * Fall back to the app-level GITHUB_TOKEN env var for public repos / rate limits.
+ */
+function githubHeaders(userToken?: string | null): Record<string, string> {
+  const token = userToken || process.env.GITHUB_TOKEN
+  const headers: Record<string, string> = {
+    'User-Agent': 'RepoMind',
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
+}
+
+/**
  * Download and extract a GitHub repo tarball to disk.
  * Works on Vercel (no git binary needed).
+ * Pass userToken to access private repos the user has permission for.
  */
 export async function cloneRepo(
   url: string,
-  onProgress?: (stage: string, pct: number) => void
+  onProgress?: (stage: string, pct: number) => void,
+  userToken?: string | null
 ): Promise<string> {
   const repoPath = getRepoPath(url)
   const { owner, repo } = parseGitHubUrl(url)
@@ -50,33 +68,24 @@ export async function cloneRepo(
   fs.mkdirSync(repoPath, { recursive: true })
   onProgress?.('Downloading repository…', 5)
 
-  // Download tarball via GitHub API (public repos, no auth needed)
   const tarballUrl = `https://api.github.com/repos/${owner}/${repo}/tarball`
-  const headers: Record<string, string> = {
-    'User-Agent': 'RepoMind',
-    Accept: 'application/vnd.github+json',
-  }
-  if (process.env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
-  }
+  const res = await fetch(tarballUrl, { headers: githubHeaders(userToken) })
 
-  const res = await fetch(tarballUrl, { headers })
   if (!res.ok) {
-    throw new Error(`GitHub tarball download failed: ${res.status} ${res.statusText}`)
+    throw new Error(
+      `GitHub tarball download failed: ${res.status} ${res.statusText}` +
+      (res.status === 404 ? ' — repo may be private or not found' : '')
+    )
   }
 
   onProgress?.('Extracting files…', 10)
 
-  // GitHub tarballs contain a single top-level directory like "owner-repo-sha/"
-  // We extract and then move contents up to repoPath
   const tmpExtract = repoPath + '_extract'
   fs.mkdirSync(tmpExtract, { recursive: true })
 
-  // Stream → gunzip → untar
   const body = res.body
   if (!body) throw new Error('Empty response body from GitHub')
 
-  // Convert web ReadableStream to Node.js stream
   const { Readable } = await import('stream')
   const nodeStream = Readable.fromWeb(body as import('stream/web').ReadableStream)
 
@@ -95,7 +104,6 @@ export async function cloneRepo(
     }
   }
 
-  // Cleanup temp extraction dir
   fs.rmSync(tmpExtract, { recursive: true, force: true })
 
   onProgress?.('Clone complete', 15)
@@ -104,8 +112,13 @@ export async function cloneRepo(
 
 /**
  * Fetch commit history via GitHub REST API.
+ * Pass userToken to access commits on private repos.
  */
-export async function getGitLog(repoPath: string, url?: string): Promise<
+export async function getGitLog(
+  repoPath: string,
+  url?: string,
+  userToken?: string | null
+): Promise<
   {
     hash: string
     message: string
@@ -114,19 +127,10 @@ export async function getGitLog(repoPath: string, url?: string): Promise<
     filesChanged: string[]
   }[]
 > {
-  // We need the URL to call GitHub API. Try to infer from the repoPath if not provided.
-  if (!url) {
-    throw new Error('GitHub URL is required for getGitLog')
-  }
+  if (!url) throw new Error('GitHub URL is required for getGitLog')
 
   const { owner, repo } = parseGitHubUrl(url)
-  const headers: Record<string, string> = {
-    'User-Agent': 'RepoMind',
-    Accept: 'application/vnd.github+json',
-  }
-  if (process.env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
-  }
+  const headers = githubHeaders(userToken)
 
   const commits: {
     hash: string
@@ -145,7 +149,7 @@ export async function getGitLog(repoPath: string, url?: string): Promise<
       if (page === 1) {
         throw new Error(`GitHub commits API failed: ${res.status} ${res.statusText}`)
       }
-      break // Later pages may 404 if there are fewer commits
+      break
     }
 
     const data = (await res.json()) as Array<{
@@ -162,14 +166,14 @@ export async function getGitLog(repoPath: string, url?: string): Promise<
     for (const item of data) {
       commits.push({
         hash: item.sha,
-        message: item.commit.message.split('\n')[0], // First line only
+        message: item.commit.message.split('\n')[0],
         author: item.commit.author.name,
         date: new Date(item.commit.author.date),
         filesChanged: (item.files ?? []).map((f) => f.filename).slice(0, 20),
       })
     }
 
-    if (data.length < 100) break // Last page
+    if (data.length < 100) break
   }
 
   return commits
@@ -177,22 +181,20 @@ export async function getGitLog(repoPath: string, url?: string): Promise<
 
 /**
  * Fetch a single commit's diff summary via GitHub REST API.
+ * Pass userToken to access diffs on private repos.
  */
-export async function getCommitDiff(repoPath: string, hash: string, url?: string): Promise<string> {
+export async function getCommitDiff(
+  repoPath: string,
+  hash: string,
+  url?: string,
+  userToken?: string | null
+): Promise<string> {
   if (!url) return ''
 
   try {
     const { owner, repo } = parseGitHubUrl(url)
-    const headers: Record<string, string> = {
-      'User-Agent': 'RepoMind',
-      Accept: 'application/vnd.github+json',
-    }
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
-    }
-
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${hash}`
-    const res = await fetch(apiUrl, { headers })
+    const res = await fetch(apiUrl, { headers: githubHeaders(userToken) })
     if (!res.ok) return ''
 
     const data = (await res.json()) as {
@@ -208,7 +210,6 @@ export async function getCommitDiff(repoPath: string, hash: string, url?: string
       }>
     }
 
-    // Build a summary similar to `git show --stat`
     const lines: string[] = []
     lines.push(`commit ${data.sha}`)
     lines.push(`Author: ${data.commit.author.name}`)

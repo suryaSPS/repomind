@@ -16,12 +16,15 @@ export interface IngestionProgress {
 
 /**
  * Full ingestion pipeline for a GitHub repo URL.
- * Calls onProgress with live updates throughout.
+ * userToken: the signed-in user's GitHub OAuth token (from oauth_accounts table).
+ *   Used for private repos and to avoid anonymous rate limits.
+ *   Falls back to process.env.GITHUB_TOKEN if not supplied.
  */
 export async function ingestRepo(
   repoId: number,
   url: string,
-  onProgress: (p: IngestionProgress) => void
+  onProgress: (p: IngestionProgress) => void,
+  userToken?: string | null
 ): Promise<void> {
   const updateStatus = async (status: string, errorMessage?: string) => {
     await db
@@ -37,7 +40,7 @@ export async function ingestRepo(
     onProgress({ stage: 'Cloning repository…', percent: 2 })
     const repoPath = await cloneRepo(url, (stage, pct) => {
       onProgress({ stage, percent: pct })
-    })
+    }, userToken)
 
     await db
       .update(repos)
@@ -65,7 +68,6 @@ export async function ingestRepo(
 
     for (let fi = 0; fi < files.length; fi++) {
       const file = files[fi]
-      // Emit current file name every 10 files so UI stays responsive
       if (fi % 10 === 0) {
         onProgress({
           stage: 'Chunking code…',
@@ -91,7 +93,7 @@ export async function ingestRepo(
       detail: `${allChunks.length} chunks from ${files.length} files`,
     })
 
-    // ── 4. Store full file contents in DB (enables Vercel disk-free operation) ─
+    // ── 4. Store full file contents in DB ─────────────────────────────────────
     onProgress({ stage: 'Storing files…', percent: 29 })
     await db.delete(repoFiles).where(eq(repoFiles.repoId, repoId))
 
@@ -108,8 +110,6 @@ export async function ingestRepo(
 
     // ── 5. Embed code chunks ──────────────────────────────────────────────────
     onProgress({ stage: 'Embedding code…', percent: 32 })
-
-    // Clear any existing vector chunks for this repo (re-ingest)
     await deleteRepoChunks(repoId)
 
     const chunkTexts = allChunks.map(
@@ -125,7 +125,7 @@ export async function ingestRepo(
       })
     })
 
-    // ── 5. Store code chunks ──────────────────────────────────────────────────
+    // ── 6. Store code chunks ──────────────────────────────────────────────────
     onProgress({ stage: 'Storing vectors…', percent: 63 })
 
     const STORE_BATCH = 200
@@ -139,16 +139,16 @@ export async function ingestRepo(
 
     onProgress({ stage: 'Storing vectors…', percent: 68 })
 
-    // ── 6. Parse git history ──────────────────────────────────────────────────
+    // ── 7. Parse git history ──────────────────────────────────────────────────
     onProgress({ stage: 'Parsing git history…', percent: 70 })
-    const commits = await getGitLog(repoPath, url)
+    const commits = await getGitLog(repoPath, url, userToken)
     onProgress({
       stage: 'Parsing git history…',
       percent: 73,
       detail: `${commits.length} commits`,
     })
 
-    // ── 7. Embed commits ──────────────────────────────────────────────────────
+    // ── 8. Embed commits ──────────────────────────────────────────────────────
     onProgress({ stage: 'Embedding commits…', percent: 75 })
     const commitTexts = commits.map(
       (c) =>
@@ -164,7 +164,7 @@ export async function ingestRepo(
       })
     })
 
-    // ── 8. Store commits (with diffs) ─────────────────────────────────────────
+    // ── 9. Store commits with diffs ───────────────────────────────────────────
     onProgress({ stage: 'Storing commits…', percent: 91 })
     for (let i = 0; i < commits.length; i += STORE_BATCH) {
       const batch = commits.slice(i, i + STORE_BATCH)
@@ -172,7 +172,7 @@ export async function ingestRepo(
 
       const diffsToFetch = batch.slice(0, 10)
       const diffs = await Promise.all(
-        diffsToFetch.map((c) => getCommitDiff(repoPath, c.hash, url))
+        diffsToFetch.map((c) => getCommitDiff(repoPath, c.hash, url, userToken))
       )
 
       await insertCommitChunks(
@@ -189,7 +189,7 @@ export async function ingestRepo(
       )
     }
 
-    // ── 9. Finalize ───────────────────────────────────────────────────────────
+    // ── 10. Finalize ──────────────────────────────────────────────────────────
     await db
       .update(repos)
       .set({

@@ -2,10 +2,18 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
+import Twitter from 'next-auth/providers/twitter'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { users, oauthAccounts } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+
+const OAUTH_PROVIDERS = ['github', 'google', 'twitter'] as const
+type OAuthProvider = typeof OAUTH_PROVIDERS[number]
+
+function isOAuthProvider(provider: string): provider is OAuthProvider {
+  return OAUTH_PROVIDERS.includes(provider as OAuthProvider)
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -23,6 +31,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorization: {
         params: { scope: 'openid email profile' },
       },
+    }),
+    Twitter({
+      clientId: process.env.TWITTER_CLIENT_ID!,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
     }),
     Credentials({
       credentials: {
@@ -56,13 +68,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   callbacks: {
     async signIn({ user, account }) {
-      if (!account || (account.provider !== 'github' && account.provider !== 'google')) {
+      if (!account || !isOAuthProvider(account.provider)) {
         return true // credentials — nothing to do
       }
 
       const provider = account.provider
       // providerAccountId is the stable unique ID from the OAuth provider
-      // (GitHub numeric user id / Google sub)
+      // (GitHub numeric user id / Google sub / Twitter numeric id)
       const providerAccountId = account.providerAccountId
       const email = user.email ?? null
       const image = user.image ?? null
@@ -82,7 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       let userId: number
 
       if (existingAccount) {
-        // Returning OAuth user — update token in oauth_accounts
+        // Returning OAuth user — refresh token in oauth_accounts
         userId = existingAccount.userId
 
         await db
@@ -110,7 +122,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .where(eq(users.id, userId))
       } else {
         // ── 2. New OAuth login — find or create user record ───────────────────
-        // Try to link by verified email (secondary policy — only when email present)
+        // Try to link by verified email as a secondary policy
         let existingUser: { id: number; username: string } | undefined
 
         if (email) {
@@ -131,7 +143,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email?.split('@')[0] ??
             `${provider}-user`
 
-          // Ensure username is unique
           let finalUsername = rawUsername
           const [byName] = await db
             .select({ id: users.id })
@@ -147,7 +158,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           userId = created.id
         }
 
-        // ── 3. Create oauth_accounts row (token stored server-side only) ──────
+        // ── 3. Store OAuth account row — token server-side only ───────────────
         await db.insert(oauthAccounts).values({
           userId,
           provider,
@@ -161,7 +172,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })
       }
 
-      // Propagate DB user id/name back into the user object so jwt() picks it up
+      // Propagate DB user id/name into the user object so jwt() picks it up
       const [dbUser] = await db
         .select({ id: users.id, username: users.username })
         .from(users)
@@ -194,6 +205,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 // ── Server-side helper: get a user's GitHub access token from DB ───────────────
 // Use this in API route handlers that need to call GitHub on behalf of the user.
+// The token is never exposed through the session or JWT.
 export async function getGitHubToken(userId: number): Promise<string | null> {
   const [row] = await db
     .select({ accessToken: oauthAccounts.accessToken })

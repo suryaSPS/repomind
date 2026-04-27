@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { auth, getGitHubToken } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,22 +21,21 @@ interface GitHubRepo {
 
 export async function GET() {
   const session = await auth()
-  if (!session) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const token = (session as any).githubAccessToken as string | undefined
+  // Token is fetched from the DB — never from the client-visible session
+  const token = await getGitHubToken(Number(session.user.id))
 
   if (!token) {
-    return new Response(
-      JSON.stringify({ error: 'No GitHub token. Sign in with GitHub to use this feature.' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    return Response.json(
+      { error: 'No GitHub token found. Sign in with GitHub OAuth to use this feature.' },
+      { status: 403 }
     )
   }
 
   try {
-    // Fetch repos the user has access to (owned + collaborator + org member)
     const allRepos: GitHubRepo[] = []
     let page = 1
 
@@ -55,31 +54,23 @@ export async function GET() {
       if (!res.ok) {
         const err = await res.text()
         console.error('GitHub API error:', res.status, err)
-        return new Response(
-          JSON.stringify({ error: `GitHub API error: ${res.status}` }),
-          { status: 502, headers: { 'Content-Type': 'application/json' } }
+        return Response.json(
+          { error: `GitHub API returned ${res.status}` },
+          { status: 502 }
         )
       }
 
       const batch: GitHubRepo[] = await res.json()
       if (batch.length === 0) break
       allRepos.push(...batch)
-
-      // Cap at 300 repos to avoid massive lists
-      if (allRepos.length >= 300) break
+      if (allRepos.length >= 300) break // cap at 300
       page++
     }
 
-    return new Response(
-      JSON.stringify({ repos: allRepos }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    return Response.json({ repos: allRepos })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('GitHub repos fetch error:', message)
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return Response.json({ error: message }, { status: 500 })
   }
 }

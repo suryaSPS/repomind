@@ -52,8 +52,8 @@ export default function ExportChatButton({ messages, repoName }: ExportChatButto
         color: 'var(--muted-foreground)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = '#6366f1'
-        e.currentTarget.style.color = '#a5b4fc'
+        e.currentTarget.style.borderColor = 'var(--brand)'
+        e.currentTarget.style.color = 'var(--brand)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = 'var(--border)'

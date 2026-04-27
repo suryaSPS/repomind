@@ -113,10 +113,10 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
         style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}
       >
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--brand)' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: 'var(--brand)' }}>
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
@@ -130,7 +130,7 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
           {isMultiRepo && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{ background: 'rgba(99,102,241,0.12)', color: 'var(--brand)', border: '1px solid rgba(99,102,241,0.25)' }}
+              style={{ background: 'var(--brand-glow)', color: 'var(--brand)', border: '1px solid var(--brand-glow)' }}
             >
               multi-repo
             </span>
@@ -150,17 +150,13 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-10">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 relative"
-              style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
                 <circle cx="11" cy="11" r="8"/>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <span
-                className="absolute inset-0 rounded-2xl"
-                style={{ animation: 'pulse-ring 3s ease-out infinite', border: '2px solid var(--brand)', borderRadius: 'inherit', opacity: 0.5 }}
-              />
             </div>
             <h3 className="text-lg font-semibold mb-1.5" style={{ color: 'var(--fg)' }}>
               Ask anything about{' '}

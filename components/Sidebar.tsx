@@ -213,9 +213,9 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
         >
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'var(--brand-gradient)', boxShadow: 'var(--shadow-brand)' }}
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -487,8 +487,8 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
         style={{ borderColor: 'var(--border)' }}
       >
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-          style={{ background: 'var(--brand-gradient)' }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold shrink-0"
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--brand)' }}
         >
           {username[0]?.toUpperCase()}
         </div>

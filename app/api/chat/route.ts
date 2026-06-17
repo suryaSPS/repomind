@@ -2,8 +2,7 @@ import { auth } from '@/lib/auth'
 import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { db } from '@/lib/db'
-import { repos, messages, chatSessions } from '@/lib/db/schema'
-import { eq, inArray } from 'drizzle-orm'
+import { messages, chatSessions } from '@/lib/db/schema'
 import { createAgentTools, createMultiRepoTools } from '@/lib/agent/tools'
 import { buildSystemPrompt, buildMultiRepoSystemPrompt } from '@/lib/agent/prompts'
 import {
@@ -13,6 +12,12 @@ import {
   searchCommitChunksMulti,
 } from '@/lib/vector/search'
 import { embedBatch } from '@/lib/ingestion/embedder'
+import {
+  getAccessibleRepos,
+  getOwnedChatSession,
+  parsePositiveInt,
+  parseRepoIds,
+} from '@/lib/repo-access'
 
 export const maxDuration = 120
 
@@ -24,13 +29,17 @@ export async function POST(req: Request) {
 
   const body = await req.json()
   const { messages: clientMessages, sessionId } = body
+  const userId = parsePositiveInt(session.user?.id)
 
-  // Support both single repoId and multi repoIds
-  const repoIds: number[] = body.repoIds
-    ? body.repoIds.map(Number)
-    : body.repoId
-      ? [Number(body.repoId)]
-      : []
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const repoIds = parseRepoIds(body.repoIds ?? body.repoId)
+
+  if (repoIds === null) {
+    return new Response('Invalid repoId(s)', { status: 400 })
+  }
 
   if (repoIds.length === 0 || !clientMessages) {
     return new Response('Missing repoId(s) or messages', { status: 400 })
@@ -38,13 +47,9 @@ export async function POST(req: Request) {
 
   const isMultiRepo = repoIds.length > 1
 
-  // Fetch all repo info
-  const repoList = await db
-    .select()
-    .from(repos)
-    .where(inArray(repos.id, repoIds))
+  const repoList = await getAccessibleRepos(userId, repoIds)
 
-  if (repoList.length === 0) return new Response('Repos not found', { status: 404 })
+  if (repoList.length !== repoIds.length) return new Response('Repos not found', { status: 404 })
 
   const notReady = repoList.find((r) => r.status !== 'ready')
   if (notReady) {
@@ -106,10 +111,19 @@ export async function POST(req: Request) {
     }
 
     // Persist user message & resolve session
-    const userId = Number(session.user?.id)
-    let resolvedSessionId = sessionId
+    const parsedSessionId = sessionId ? parsePositiveInt(sessionId) : null
+    let resolvedSessionId = parsedSessionId
 
-    if (!resolvedSessionId) {
+    if (sessionId && !parsedSessionId) {
+      return new Response('Invalid sessionId', { status: 400 })
+    }
+
+    if (resolvedSessionId) {
+      const existingSession = await getOwnedChatSession(userId, resolvedSessionId)
+      if (!existingSession || existingSession.repoId !== repoIds[0]) {
+        return new Response('Session not found', { status: 404 })
+      }
+    } else {
       // For multi-repo, use the first repo as the session's repoId
       const [newSession] = await db
         .insert(chatSessions)

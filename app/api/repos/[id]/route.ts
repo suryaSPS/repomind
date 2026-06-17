@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { repos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { deleteRepoChunks } from '@/lib/vector/search'
 import fs from 'fs'
+import { getAccessibleRepo, parsePositiveInt } from '@/lib/repo-access'
+import { repos } from '@/lib/db/schema'
 
 export async function DELETE(
   _req: Request,
@@ -14,9 +15,12 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const repoId = Number(id)
+  const userId = parsePositiveInt(session.user?.id)
+  const repoId = parsePositiveInt(id)
 
-  const [repo] = await db.select().from(repos).where(eq(repos.id, repoId)).limit(1)
+  if (!userId || !repoId) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const repo = await getAccessibleRepo(userId, repoId)
   if (!repo) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // Wipe all vectors for this repo

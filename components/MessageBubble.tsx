@@ -10,8 +10,6 @@ interface MessageBubbleProps {
   repoId?: number
 }
 
-const CITATION_REGEX = /`([^`]+\.[a-z]+:\d+(?:-\d+)?)`/g
-
 function processInline(text: string, keyPrefix: string, repoId?: number): React.ReactNode[] {
   const tokenRegex = /\*\*(.*?)\*\*|`([^`]+)`|([❌✅])/g
   const parts: React.ReactNode[] = []
@@ -281,7 +279,7 @@ function CitationChip({ citation, repoId }: { citation: string; repoId?: number 
   )
 }
 
-export default function MessageBubble({ role, content, username, repoId }: MessageBubbleProps) {
+export default function MessageBubble({ role, content, repoId }: MessageBubbleProps) {
   const isUser = role === 'user'
 
   if (isUser) {

@@ -1,8 +1,9 @@
-import { auth } from '@/lib/auth'
+import { auth, getGitHubToken } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { repos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { ingestRepo } from '@/lib/ingestion'
+import { repos } from '@/lib/db/schema'
+import { getAccessibleRepo, parsePositiveInt } from '@/lib/repo-access'
 
 export async function POST(
   _req: Request,
@@ -12,10 +13,14 @@ export async function POST(
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   const { id } = await params
-  const repoId = Number(id)
+  const userId = parsePositiveInt(session.user?.id)
+  const repoId = parsePositiveInt(id)
 
-  const [repo] = await db.select().from(repos).where(eq(repos.id, repoId)).limit(1)
+  if (!userId || !repoId) return new Response('Repo not found', { status: 404 })
+
+  const repo = await getAccessibleRepo(userId, repoId)
   if (!repo) return new Response('Repo not found', { status: 404 })
+  const userGitHubToken = await getGitHubToken(userId)
 
   // Reset status to pending before re-ingesting
   await db
@@ -28,7 +33,7 @@ export async function POST(
       const send = (data: object) =>
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`))
 
-      ingestRepo(repoId, repo.url, (p) => send(p))
+      ingestRepo(repoId, repo.url, (p) => send(p), userGitHubToken)
         .then(() => send({ stage: 'done', percent: 100, repoId }))
         .catch((err) => send({ stage: 'error', percent: 0, error: err.message }))
         .finally(() => controller.close())

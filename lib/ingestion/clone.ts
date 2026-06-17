@@ -45,6 +45,24 @@ function githubHeaders(userToken?: string | null): Record<string, string> {
   return headers
 }
 
+async function getCommitFiles(
+  owner: string,
+  repo: string,
+  hash: string,
+  headers: Record<string, string>
+): Promise<string[]> {
+  try {
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${hash}`
+    const res = await fetch(apiUrl, { headers })
+    if (!res.ok) return []
+
+    const data = (await res.json()) as { files?: Array<{ filename: string }> }
+    return (data.files ?? []).map((file) => file.filename).slice(0, 20)
+  } catch {
+    return []
+  }
+}
+
 /**
  * Download and extract a GitHub repo tarball to disk.
  * Works on Vercel (no git binary needed).
@@ -163,13 +181,22 @@ export async function getGitLog(
 
     if (data.length === 0) break
 
-    for (const item of data) {
+    const detailLimit = userToken || process.env.GITHUB_TOKEN ? data.length : 50
+    const fileLists = await Promise.all(
+      data.map((item, index) =>
+        index < detailLimit
+          ? getCommitFiles(owner, repo, item.sha, headers)
+          : Promise.resolve([])
+      )
+    )
+
+    for (const [index, item] of data.entries()) {
       commits.push({
         hash: item.sha,
         message: item.commit.message.split('\n')[0],
         author: item.commit.author.name,
         date: new Date(item.commit.author.date),
-        filesChanged: (item.files ?? []).map((f) => f.filename).slice(0, 20),
+        filesChanged: fileLists[index],
       })
     }
 

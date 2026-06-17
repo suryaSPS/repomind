@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 /**
- * Lightweight middleware that checks for the NextAuth session cookie
- * without importing auth() — which pulls in Node.js-only deps
- * (pg, bcryptjs) that crash in Vercel's Edge Runtime.
+ * Lightweight optimistic auth redirect.
+ * Route handlers and pages still verify auth/authorization server-side.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const sessionToken =
     request.cookies.get('authjs.session-token')?.value ||
     request.cookies.get('__Secure-authjs.session-token')?.value
@@ -15,10 +14,6 @@ export function middleware(request: NextRequest) {
 
   if (!sessionToken && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (sessionToken && isLoginPage) {
-    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return NextResponse.next()

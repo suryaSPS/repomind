@@ -38,9 +38,14 @@ export async function ingestRepo(
 
     // ── 1. Clone ──────────────────────────────────────────────────────────────
     onProgress({ stage: 'Cloning repository…', percent: 2 })
-    const repoPath = await cloneRepo(url, (stage, pct) => {
-      onProgress({ stage, percent: pct })
-    }, userToken)
+    const repoPath = await cloneRepo(
+      url,
+      (stage, pct) => {
+        onProgress({ stage, percent: pct })
+      },
+      userToken,
+      String(repoId)
+    )
 
     await db
       .update(repos)

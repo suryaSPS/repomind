@@ -15,18 +15,35 @@ const REPOS_DIR = process.env.VERCEL
  * Supports: https://github.com/owner/repo[.git][/...]
  */
 function parseGitHubUrl(url: string): { owner: string; repo: string } {
-  const cleaned = url.replace(/\.git$/, '').replace(/\/+$/, '')
-  const match = cleaned.match(/github\.com\/([^/]+)\/([^/]+)/)
-  if (!match) throw new Error(`Not a valid GitHub URL: ${url}`)
-  return { owner: match[1], repo: match[2] }
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error(`Not a valid GitHub URL: ${url}`)
+  }
+
+  if (parsed.hostname.toLowerCase() !== 'github.com') {
+    throw new Error(`Not a valid GitHub URL: ${url}`)
+  }
+
+  const parts = parsed.pathname
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\.git$/, '')
+    .split('/')
+
+  if (parts.length < 2 || !parts[0] || !parts[1]) {
+    throw new Error(`Not a valid GitHub URL: ${url}`)
+  }
+
+  return { owner: parts[0], repo: parts[1] }
 }
 
-export function getRepoHash(url: string): string {
-  return crypto.createHash('md5').update(url).digest('hex').slice(0, 12)
+export function getRepoHash(url: string, cacheScope = 'shared'): string {
+  return crypto.createHash('md5').update(`${cacheScope}:${url}`).digest('hex').slice(0, 12)
 }
 
-export function getRepoPath(url: string): string {
-  return path.join(REPOS_DIR, getRepoHash(url))
+export function getRepoPath(url: string, cacheScope?: string | null): string {
+  return path.join(REPOS_DIR, getRepoHash(url, cacheScope ?? 'shared'))
 }
 
 /**
@@ -53,9 +70,10 @@ function githubHeaders(userToken?: string | null): Record<string, string> {
 export async function cloneRepo(
   url: string,
   onProgress?: (stage: string, pct: number) => void,
-  userToken?: string | null
+  userToken?: string | null,
+  cacheScope?: string | null
 ): Promise<string> {
-  const repoPath = getRepoPath(url)
+  const repoPath = getRepoPath(url, cacheScope)
   const { owner, repo } = parseGitHubUrl(url)
 
   // Already extracted — skip

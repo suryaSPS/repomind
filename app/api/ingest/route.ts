@@ -7,8 +7,11 @@ import { ingestRepo } from '@/lib/ingestion'
 function parseGithubUrl(url: string): { owner: string; name: string } | null {
   try {
     const u = new URL(url)
-    if (!u.hostname.includes('github.com')) return null
-    const parts = u.pathname.replace(/^\//, '').replace(/\.git$/, '').split('/')
+    if (u.hostname.toLowerCase() !== 'github.com') return null
+    const parts = u.pathname
+      .replace(/^\/+|\/+$/g, '')
+      .replace(/\.git$/, '')
+      .split('/')
     if (parts.length < 2) return null
     return { owner: parts[0], name: parts[1] }
   } catch {

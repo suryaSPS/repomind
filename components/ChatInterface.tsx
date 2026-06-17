@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useChat } from 'ai/react'
 import MessageBubble, { ThinkingIndicator } from './MessageBubble'
 import ExportChatButton from './ExportChatButton'
@@ -69,10 +69,13 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
     },
   })
 
-  const messages = [
-    ...restoredMessages,
-    ...liveMessages.filter((m) => !restoredMessages.some((r) => r.id === m.id)),
-  ]
+  const messages = useMemo(
+    () => [
+      ...restoredMessages,
+      ...liveMessages.filter((m) => !restoredMessages.some((r) => r.id === m.id)),
+    ],
+    [liveMessages, restoredMessages]
+  )
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -100,7 +103,7 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
     }
   }
 
-  function useStarterQuestion(q: string) {
+  function applyStarterQuestion(q: string) {
     handleInputChange({ target: { value: q } } as React.ChangeEvent<HTMLTextAreaElement>)
     textareaRef.current?.focus()
   }
@@ -169,7 +172,7 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
               {(isMultiRepo ? MULTI_REPO_QUESTIONS : SINGLE_REPO_QUESTIONS).map((q) => (
                 <button
                   key={q}
-                  onClick={() => useStarterQuestion(q)}
+                  onClick={() => applyStarterQuestion(q)}
                   className="text-xs px-3.5 py-2 rounded-xl border text-left transition-all"
                   style={{
                     background: 'var(--bg-surface)',

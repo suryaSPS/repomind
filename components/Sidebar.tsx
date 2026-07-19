@@ -277,7 +277,7 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
               className="text-xs px-2 py-0.5 rounded-lg transition-all font-medium"
               style={{
                 background: showAddInput ? 'var(--bg-elevated)' : 'var(--brand-gradient)',
-                color: 'white',
+                color: showAddInput ? 'var(--fg)' : 'var(--brand-fg)',
                 border: '1px solid transparent',
               }}
               title="Add repo by URL"
@@ -297,7 +297,7 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
               <button
                 onClick={startMultiRepoChat}
                 className="w-full text-xs py-1.5 rounded-lg font-semibold transition-all btn-glow"
-                style={{ background: 'var(--brand-gradient)', color: 'white' }}
+                style={{ background: 'var(--brand-gradient)', color: 'var(--brand-fg)' }}
               >
                 Chat with {selectedRepos.size} repos
               </button>
@@ -334,7 +334,7 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
                 className="shrink-0 px-2.5 py-1.5 text-xs rounded-lg font-semibold transition-all"
                 style={{
                   background: addingRepo ? 'var(--bg-elevated)' : 'var(--brand-gradient)',
-                  color: 'white',
+                  color: addingRepo ? 'var(--fg-muted)' : 'var(--brand-fg)',
                   border: 'none',
                 }}
               >
@@ -428,11 +428,11 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
                     style={{
                       borderColor: isSelected ? 'var(--brand)' : 'var(--border)',
                       background: isSelected ? 'var(--brand)' : 'transparent',
-                      color: 'white',
+                      color: 'var(--brand-fg)',
                     }}
                   >
                     {isSelected && (
-                      <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="var(--brand-fg)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="2 6 5 9 10 3"/>
                       </svg>
                     )}

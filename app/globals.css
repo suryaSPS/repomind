@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════
-   REPOMIND DESIGN SYSTEM v3
-   Palette: Zinc neutrals + Emerald accent
+   REPOMIND DESIGN SYSTEM v4
+   Palette: Zinc neutrals + Amber accent ("preserved in amber")
    Dark default · [data-theme="light"] for light mode
 ═══════════════════════════════════════════════════════════ */
 
@@ -28,14 +28,14 @@
   --fg-muted:    #71717a;   /* zinc-500 */
   --fg-subtle:   #3f3f46;   /* zinc-700 */
 
-  /* Brand — emerald */
-  --brand:          #10b981;   /* emerald-500 */
-  --brand-hover:    #34d399;   /* emerald-400 */
-  --brand-dark:     #059669;   /* emerald-600 */
-  --brand-fg:       #ffffff;   /* text on brand surfaces */
-  --brand-gradient: linear-gradient(135deg, #10b981, #059669);
-  --brand-glow:     rgba(16, 185, 129, 0.18);
-  --brand-glow-sm:  rgba(16, 185, 129, 0.09);
+  /* Brand — amber ("preserved in amber" — the archaeologist's color) */
+  --brand:          #f59e0b;   /* amber-500 */
+  --brand-hover:    #fbbf24;   /* amber-400 */
+  --brand-dark:     #d97706;   /* amber-600 */
+  --brand-fg:       #1c1917;   /* text on brand surfaces — dark for contrast on amber */
+  --brand-gradient: linear-gradient(135deg, #f59e0b, #d97706);
+  --brand-glow:     rgba(245, 158, 11, 0.18);
+  --brand-glow-sm:  rgba(245, 158, 11, 0.09);
 
   /* Semantic */
   --success:    #34d399;
@@ -49,7 +49,7 @@
   --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-md:    0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg:    0 12px 40px rgba(0, 0, 0, 0.5);
-  --shadow-brand: 0 4px 20px rgba(16, 185, 129, 0.22);
+  --shadow-brand: 0 4px 20px rgba(245, 158, 11, 0.22);
 
   /* Backward compat aliases */
   --background:       var(--bg);
@@ -80,13 +80,13 @@
   --fg-muted:    #6b7280;   /* gray-500 */
   --fg-subtle:   #d1d5db;   /* gray-300 */
 
-  --brand:          #059669;   /* emerald-600 — darker for light readability */
-  --brand-hover:    #047857;   /* emerald-700 */
-  --brand-dark:     #065f46;   /* emerald-800 */
-  --brand-fg:       #ffffff;   /* text on brand surfaces */
-  --brand-gradient: linear-gradient(135deg, #059669, #047857);
-  --brand-glow:     rgba(5, 150, 105, 0.12);
-  --brand-glow-sm:  rgba(5, 150, 105, 0.06);
+  --brand:          #b45309;   /* amber-700 — darker for light readability (4.5:1+ on white) */
+  --brand-hover:    #92400e;   /* amber-800 */
+  --brand-dark:     #78350f;   /* amber-900 */
+  --brand-fg:       #ffffff;   /* white passes on amber-700 */
+  --brand-gradient: linear-gradient(135deg, #b45309, #92400e);
+  --brand-glow:     rgba(180, 83, 9, 0.12);
+  --brand-glow-sm:  rgba(180, 83, 9, 0.06);
 
   --success:    #059669;
   --success-bg: rgba(5, 150, 105, 0.08);
@@ -98,7 +98,7 @@
   --shadow-sm:    0 1px 3px rgba(17, 24, 39, 0.06);
   --shadow-md:    0 4px 16px rgba(17, 24, 39, 0.08);
   --shadow-lg:    0 12px 40px rgba(17, 24, 39, 0.10);
-  --shadow-brand: 0 4px 20px rgba(5, 150, 105, 0.18);
+  --shadow-brand: 0 4px 20px rgba(180, 83, 9, 0.18);
 
   --background:       var(--bg);
   --foreground:       var(--fg);

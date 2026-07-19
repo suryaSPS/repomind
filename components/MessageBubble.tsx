@@ -291,7 +291,7 @@ export default function MessageBubble({ role, content, repoId }: MessageBubblePr
             borderRadius: '16px 16px 4px 16px',
             padding: '10px 14px',
             fontSize: '14px',
-            color: 'white',
+            color: 'var(--brand-fg)',
             background: 'var(--brand)',
             lineHeight: 1.6,
           }}

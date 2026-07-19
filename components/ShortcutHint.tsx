@@ -1,15 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
 export default function ShortcutHint() {
-  const [isMac, setIsMac] = useState(true)
-
-  useEffect(() => {
-    setIsMac(navigator.platform.toLowerCase().includes('mac'))
-  }, [])
-
-  const mod = isMac ? '⌘' : 'Ctrl'
+  const mod =
+    typeof navigator === 'undefined' || navigator.platform.toLowerCase().includes('mac')
+      ? '⌘'
+      : 'Ctrl'
 
   return (
     <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>

@@ -1,14 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
-
-  useEffect(() => {
-    const saved = localStorage.getItem('repomind-theme')
-    if (saved === 'light') setTheme('light')
-  }, [])
+  const [theme, setTheme] = useState<'dark' | 'light'>(() =>
+    typeof localStorage !== 'undefined' && localStorage.getItem('repomind-theme') === 'light'
+      ? 'light'
+      : 'dark'
+  )
 
   function toggle() {
     const next = theme === 'dark' ? 'light' : 'dark'

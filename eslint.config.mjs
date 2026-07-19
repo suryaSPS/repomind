@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     ".agents/**",
     ".claude/**",
     ".sfdx/**",
+    // Repos cloned by RepoMind for indexing — not project code.
+    "data/**",
   ]),
 ]);
 

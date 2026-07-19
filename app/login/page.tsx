@@ -186,10 +186,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-9 rounded-lg font-medium text-sm text-white transition-opacity"
+              className="w-full h-9 rounded-lg font-medium text-sm transition-opacity"
               style={{
                 background: loading ? 'var(--bg-elevated)' : 'var(--brand)',
-                color: loading ? 'var(--fg-muted)' : 'white',
+                color: loading ? 'var(--fg-muted)' : 'var(--brand-fg)',
                 border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
               }}

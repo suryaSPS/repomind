@@ -32,6 +32,7 @@
   --brand:          #10b981;   /* emerald-500 */
   --brand-hover:    #34d399;   /* emerald-400 */
   --brand-dark:     #059669;   /* emerald-600 */
+  --brand-fg:       #ffffff;   /* text on brand surfaces */
   --brand-gradient: linear-gradient(135deg, #10b981, #059669);
   --brand-glow:     rgba(16, 185, 129, 0.18);
   --brand-glow-sm:  rgba(16, 185, 129, 0.09);
@@ -82,6 +83,7 @@
   --brand:          #059669;   /* emerald-600 — darker for light readability */
   --brand-hover:    #047857;   /* emerald-700 */
   --brand-dark:     #065f46;   /* emerald-800 */
+  --brand-fg:       #ffffff;   /* text on brand surfaces */
   --brand-gradient: linear-gradient(135deg, #059669, #047857);
   --brand-glow:     rgba(5, 150, 105, 0.12);
   --brand-glow-sm:  rgba(5, 150, 105, 0.06);
@@ -114,7 +116,7 @@
 /* ─── Base ─── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { color-scheme: dark; }
+html { color-scheme: dark; scroll-behavior: smooth; }
 [data-theme="light"] { color-scheme: light; }
 
 body {
@@ -310,6 +312,136 @@ p code, li code {
 /* Backward compat */
 .btn-glow { transition: opacity 0.2s, transform 0.15s; }
 .btn-glow:hover:not(:disabled) { opacity: 0.88; }
+
+/* ═══════════════════════════════════════════════════════════
+   LANDING PAGE — cinematic layer (scoped under .landing)
+═══════════════════════════════════════════════════════════ */
+
+/* Ambient glow blobs — transform-only drift, static blur */
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(50px, -35px) scale(1.1); }
+  66%      { transform: translate(-35px, 25px) scale(0.94); }
+}
+.landing .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  animation: blob-drift 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Perspective grid floor behind hero */
+.landing .grid-floor {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(ellipse 72% 58% at 50% 0%, black 25%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 72% 58% at 50% 0%, black 25%, transparent 72%);
+  opacity: 0.5;
+}
+
+/* Headline line-mask rise */
+@keyframes line-rise {
+  from { transform: translateY(112%); }
+  to   { transform: translateY(0); }
+}
+.landing .line-mask { overflow: hidden; }
+.landing .line-rise {
+  display: inline-block;
+  transform: translateY(112%);
+  animation: line-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+/* Choreographed element entrance (load sequence) */
+@keyframes chip-pop {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.landing .chip-pop {
+  opacity: 0;
+  animation: chip-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+/* Slow vertical float for depth-layered cards */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0) translateZ(var(--z, 0)); }
+  50%      { transform: translateY(-12px) translateZ(var(--z, 0)); }
+}
+.landing .float-card {
+  animation: float-y 6s ease-in-out infinite;
+  animation-delay: var(--fd, 0s);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Scroll-triggered reveal */
+.landing .reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0s);
+}
+.landing .reveal.in { opacity: 1; transform: translateY(0); }
+
+/* 3D tilt stage for hero mock */
+.landing .tilt-stage { perspective: 1400px; }
+.landing .tilt-body {
+  transform: rotateX(var(--rx, 9deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
+/* Spotlight hover — glow follows cursor inside cards */
+.landing .spot-card { position: relative; overflow: hidden; }
+.landing .spot-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    var(--brand-glow),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+}
+.landing .spot-card:hover::before { opacity: 1; }
+.landing .spot-card > * { position: relative; }
+
+/* Button press physicality */
+.landing .press { transition: transform 0.12s ease-out, box-shadow 0.2s; }
+.landing .press:active { transform: scale(0.97); }
+
+/* Streaming answer lines */
+@keyframes stream-line {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.landing .stream-line {
+  opacity: 0;
+  animation: stream-line 0.4s ease-out forwards;
+  animation-delay: var(--d, 0s);
+}
+
+/* Reduced motion: everything lands instantly, nothing drifts */
+@media (prefers-reduced-motion: reduce) {
+  .landing .blob,
+  .landing .float-card { animation: none !important; }
+  .landing .line-rise,
+  .landing .chip-pop,
+  .landing .stream-line { animation: none !important; opacity: 1; transform: none; }
+  .landing .reveal { transition: none; opacity: 1; transform: none; }
+  .landing .tilt-body { transform: none !important; transition: none; }
+}
 
 /* Scan line container */
 .scan-container {

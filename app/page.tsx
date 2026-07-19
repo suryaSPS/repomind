@@ -1,10 +1,10 @@
 import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import MainApp from './MainApp'
+import LandingPage from '@/components/LandingPage'
 
 export default async function Home() {
   const session = await auth()
-  if (!session) redirect('/login')
+  if (!session) return <LandingPage />
 
   return (
     <MainApp username={session.user?.name ?? 'user'} />

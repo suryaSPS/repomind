@@ -449,7 +449,7 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
                 {r.owner} · {r.fileCount ?? 0}f · {r.commitCount ?? 0}c
               </p>
               {!compareMode && (
-                <div className="ml-5 mt-1.5 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="ml-5 mt-1.5 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <ReIngestButton repoId={r.id} onDone={fetchRepos} />
                   <DeleteRepoButton repoId={r.id} repoName={r.name} onDeleted={fetchRepos} />
                 </div>

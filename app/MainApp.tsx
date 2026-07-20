@@ -14,6 +14,8 @@ export default function MainApp({ username }: MainAppProps) {
   const [activeRepo, setActiveRepo] = useState<{ id: number; name: string } | null>(null)
   const [multiRepo, setMultiRepo] = useState<{ ids: number[]; names: string[] } | null>(null)
   const [restoredSessionId, setRestoredSessionId] = useState<number | null>(null)
+  // Mobile: sidebar is an off-canvas drawer (static column from `md` up)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   function handleRepoReady(repoId: number, repoName: string) {
     setRestoredSessionId(null)
@@ -26,41 +28,88 @@ export default function MainApp({ username }: MainAppProps) {
     setRestoredSessionId(null)
     setMultiRepo(null)
     setActiveRepo({ id, name })
+    setSidebarOpen(false)
   }
 
   function handleRestoreSession(sessionId: number, repoId: number, repoName: string) {
     setMultiRepo(null)
     setRestoredSessionId(sessionId)
     setActiveRepo({ id: repoId, name: repoName })
+    setSidebarOpen(false)
   }
 
   function handleMultiRepoChat(repoIds: number[], repoNames: string[]) {
     setRestoredSessionId(null)
     setActiveRepo({ id: repoIds[0], name: repoNames.join(' + ') })
     setMultiRepo({ ids: repoIds, names: repoNames })
+    setSidebarOpen(false)
   }
 
   function handleGoHome() {
     setActiveRepo(null)
     setMultiRepo(null)
     setRestoredSessionId(null)
+    setSidebarOpen(false)
   }
 
   const isActive = activeRepo || multiRepo
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--background)' }}>
-      <Sidebar
-        activeRepoId={activeRepo?.id ?? null}
-        onSelectRepo={handleSelectRepo}
-        onRestoreSession={handleRestoreSession}
-        onAddRepo={() => {}}
-        onGoHome={handleGoHome}
-        onMultiRepoChat={handleMultiRepoChat}
-        username={username}
-      />
+      {/* Backdrop — mobile only, closes the drawer on tap */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Sidebar — off-canvas drawer on mobile, static column from md up */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <Sidebar
+          activeRepoId={activeRepo?.id ?? null}
+          onSelectRepo={handleSelectRepo}
+          onRestoreSession={handleRestoreSession}
+          onAddRepo={() => {}}
+          onGoHome={handleGoHome}
+          onMultiRepoChat={handleMultiRepoChat}
+          username={username}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Mobile top bar — hamburger to open the drawer */}
+        <div
+          className="md:hidden flex items-center gap-3 px-4 h-14 border-b shrink-0"
+          style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-9 h-9 -ml-1.5 rounded-lg flex items-center justify-center"
+            style={{ color: 'var(--fg-secondary)' }}
+            aria-label="Open menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--brand)' }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span className="text-sm font-bold" style={{ color: 'var(--fg)' }}>RepoMind</span>
+          </div>
+        </div>
+
         <ErrorBoundary>
         {isActive ? (
           <ChatInterface
@@ -83,7 +132,7 @@ export default function MainApp({ username }: MainAppProps) {
 
 function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) => void }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 overflow-y-auto">
       <div className="text-center max-w-lg mb-10">
         {/* Icon */}
         <div

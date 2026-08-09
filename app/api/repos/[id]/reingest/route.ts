@@ -3,18 +3,19 @@ import { db } from '@/lib/db'
 import { repos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { ingestRepo } from '@/lib/ingestion'
+import { getAccessibleRepo } from '@/lib/authz'
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session) return new Response('Unauthorized', { status: 401 })
+  if (!session?.user?.id) return new Response('Unauthorized', { status: 401 })
 
   const { id } = await params
   const repoId = Number(id)
 
-  const [repo] = await db.select().from(repos).where(eq(repos.id, repoId)).limit(1)
+  const repo = await getAccessibleRepo(Number(session.user.id), repoId)
   if (!repo) return new Response('Repo not found', { status: 404 })
 
   // Reset status to pending before re-ingesting

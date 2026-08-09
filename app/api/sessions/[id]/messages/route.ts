@@ -1,28 +1,24 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { chatSessions, messages } from '@/lib/db/schema'
+import { messages } from '@/lib/db/schema'
 import { eq, asc } from 'drizzle-orm'
+import { getOwnedChatSession } from '@/lib/authz'
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { id } = await params
   const sessionId = Number(id)
-  const userId = Number(session.user?.id)
 
-  // Verify ownership
-  const [chatSession] = await db
-    .select()
-    .from(chatSessions)
-    .where(eq(chatSessions.id, sessionId))
-    .limit(1)
-
-  if (!chatSession || chatSession.userId !== userId) {
+  const chatSession = await getOwnedChatSession(Number(session.user.id), sessionId)
+  if (!chatSession) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 

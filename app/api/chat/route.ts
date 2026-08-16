@@ -3,6 +3,7 @@ import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { db } from '@/lib/db'
 import { messages, chatSessions } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import { getAccessibleRepos, getOwnedChatSession } from '@/lib/authz'
 import { createAgentTools, createMultiRepoTools } from '@/lib/agent/tools'
 import { buildSystemPrompt, buildMultiRepoSystemPrompt } from '@/lib/agent/prompts'
@@ -15,6 +16,12 @@ import {
 import { embedBatch } from '@/lib/ingestion/embedder'
 
 export const maxDuration = 120
+
+/**
+ * How many past turns of a conversation to replay to the model. Caps prompt
+ * growth (and cost) on long-running chats; the full transcript is still stored.
+ */
+const MAX_HISTORY_MESSAGES = 40
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -137,6 +144,26 @@ export async function POST(req: Request) {
       })
     }
 
+    // Replay the conversation from the database rather than from the request.
+    // The client only holds the turns of the chat it currently has open, so a
+    // reopened session would otherwise reach the model with no history at all.
+    // Reading it back here also means the transcript can't be rewritten by the
+    // caller. Newest-first + reverse so the cap keeps the most recent turns.
+    const stored = await db
+      .select({ role: messages.role, content: messages.content })
+      .from(messages)
+      .where(eq(messages.sessionId, activeSessionId))
+      .orderBy(desc(messages.id))
+      .limit(MAX_HISTORY_MESSAGES)
+
+    const history = stored
+      .reverse()
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+    // Fall back to the request only if nothing was stored (e.g. no user turn).
+    const modelMessages = history.length > 0 ? history : clientMessages
+
     // Build tools and system prompt
     let tools
     let systemPrompt: string
@@ -155,7 +182,7 @@ export async function POST(req: Request) {
     const result = await streamText({
       model: anthropic('claude-haiku-4-5-20251001'),
       system: systemPrompt,
-      messages: clientMessages,
+      messages: modelMessages,
       tools,
       maxSteps: 8,
       onFinish: async ({ text }) => {

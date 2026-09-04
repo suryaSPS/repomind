@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { repos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { deleteRepoChunks } from '@/lib/vector/search'
+import { getAccessibleRepo } from '@/lib/authz'
 import fs from 'fs'
 
 export async function DELETE(
@@ -11,12 +12,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { id } = await params
   const repoId = Number(id)
 
-  const [repo] = await db.select().from(repos).where(eq(repos.id, repoId)).limit(1)
+  // Deleting a repo cascades to its chat_sessions and messages, so an unchecked
+  // id here lets any signed-in user wipe another user's chat history.
+  const repo = await getAccessibleRepo(Number(session.user.id), repoId)
   if (!repo) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // Wipe all vectors for this repo

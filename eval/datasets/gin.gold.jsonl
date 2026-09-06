@@ -1,0 +1,27 @@
+{"id":"gn-01","repo":"gin","type":"concept","question":"What data structure does the router use to match URLs, and why that one?","relevantFiles":["tree.go"]}
+{"id":"gn-02","repo":"gin","type":"symbol","question":"Where is the per-request Context defined, with helpers like JSON and Param?","relevantFiles":["context.go"]}
+{"id":"gn-03","repo":"gin","type":"concept","question":"How is a panic in a handler turned into a 500 instead of crashing the server?","relevantFiles":["recovery.go"]}
+{"id":"gn-04","repo":"gin","type":"concept","question":"How is the default request log line formatted, and how do you colour it?","relevantFiles":["logger.go"]}
+{"id":"gn-05","repo":"gin","type":"howto","question":"How does binding a JSON request body into a struct work?","relevantFiles":["binding/json.go","binding/binding.go"]}
+{"id":"gn-06","repo":"gin","type":"concept","question":"How do nested route groups share a common path prefix and middleware?","relevantFiles":["routergroup.go"]}
+{"id":"gn-07","repo":"gin","type":"concept","question":"How does the framework switch between debug, release and test mode?","relevantFiles":["mode.go"]}
+{"id":"gn-08","repo":"gin","type":"symbol","question":"Where is the http.ResponseWriter wrapper that records status code and bytes written?","relevantFiles":["response_writer.go"]}
+{"id":"gn-09","repo":"gin","type":"concept","question":"How are struct tag validation rules applied to bound request data?","relevantFiles":["binding/default_validator.go"]}
+{"id":"gn-10","repo":"gin","type":"concept","question":"How do handlers accumulate errors on the request, and what are the error types?","relevantFiles":["errors.go"]}
+{"id":"gn-11","repo":"gin","type":"concept","question":"How are HTML templates rendered and how is the template set configured?","relevantFiles":["render/html.go"]}
+{"id":"gn-12","repo":"gin","type":"howto","question":"How do you serve static files from a directory?","relevantFiles":["fs.go","routergroup.go"]}
+{"id":"gn-13","repo":"gin","type":"concept","question":"How are form and query values mapped onto struct fields, including slices and defaults?","relevantFiles":["binding/form_mapping.go"]}
+{"id":"gn-14","repo":"gin","type":"concept","question":"How does the built-in basic authentication middleware compare credentials?","relevantFiles":["auth.go"]}
+{"id":"gn-15","repo":"gin","type":"concept","question":"How does the code convert between string and byte slice without allocating?","relevantFiles":["internal/bytesconv/bytesconv.go"]}
+{"id":"gn-16","repo":"gin","type":"concept","question":"How can the JSON encoder be swapped out for sonic or go-json at build time?","relevantFiles":["codec/json/api.go","codec/json/sonic.go"]}
+{"id":"gn-17","repo":"gin","type":"architecture","question":"How does the Engine satisfy net/http and dispatch an incoming request?","relevantFiles":["gin.go"]}
+{"id":"gn-18","repo":"gin","type":"concept","question":"How are URL paths cleaned and normalised before matching?","relevantFiles":["path.go"]}
+{"id":"gn-19","repo":"gin","type":"symbol","question":"How is a redirect response written?","relevantFiles":["render/redirect.go"]}
+{"id":"gn-20","repo":"gin","type":"concept","question":"How are path parameters bound into a struct?","relevantFiles":["binding/uri.go"]}
+{"id":"gn-21","repo":"gin","type":"debug","question":"What prints the warning telling you the server is running in debug mode?","relevantFiles":["debug.go"]}
+{"id":"gn-22","repo":"gin","type":"concept","question":"How is a multipart file upload read from the request?","relevantFiles":["context.go"]}
+{"id":"gn-x1","repo":"gin","type":"symbol_exact","question":"StringToBytes","relevantFiles":["internal/bytesconv/bytesconv.go"]}
+{"id":"gn-x2","repo":"gin","type":"symbol_exact","question":"BasicAuthForRealm","relevantFiles":["auth.go"]}
+{"id":"gn-x3","repo":"gin","type":"symbol_exact","question":"addRoute","relevantFiles":["tree.go"]}
+{"id":"gn-x4","repo":"gin","type":"symbol_exact","question":"responseWriter WriteHeaderNow","relevantFiles":["response_writer.go"]}
+{"id":"gn-x5","repo":"gin","type":"symbol_exact","question":"StaticFS","relevantFiles":["routergroup.go"]}

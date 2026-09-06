@@ -1,0 +1,28 @@
+{"id":"rm-01","repo":"repomind","type":"symbol","question":"Where does the app read a user's stored GitHub access token out of the database?","relevantFiles":["lib/auth.ts"]}
+{"id":"rm-02","repo":"repomind","type":"concept","question":"How does indexing avoid blowing past OpenAI's tokens-per-minute rate limit?","relevantFiles":["lib/ingestion/embedder.ts"]}
+{"id":"rm-03","repo":"repomind","type":"concept","question":"What stops one signed-in user from reading a repository that belongs to somebody else?","relevantFiles":["lib/authz.ts"]}
+{"id":"rm-04","repo":"repomind","type":"symbol","question":"What does deleteRepoChunks do and when is it called?","relevantFiles":["lib/vector/search.ts","lib/ingestion/index.ts"]}
+{"id":"rm-05","repo":"repomind","type":"howto","question":"How is a source file split up before it gets embedded, and how much do the pieces overlap?","relevantFiles":["lib/ingestion/chunker.ts"]}
+{"id":"rm-06","repo":"repomind","type":"concept","question":"Which file types get indexed, and which folders are skipped entirely?","relevantFiles":["lib/ingestion/walker.ts"]}
+{"id":"rm-07","repo":"repomind","type":"howto","question":"Does the indexer actually run git clone, or does it get the source some other way?","relevantFiles":["lib/ingestion/clone.ts"]}
+{"id":"rm-08","repo":"repomind","type":"architecture","question":"What tables exist and how is the embedding column declared?","relevantFiles":["lib/db/schema.ts"]}
+{"id":"rm-09","repo":"repomind","type":"concept","question":"What SQL runs to find the nearest code chunks for a query vector?","relevantFiles":["lib/vector/search.ts"]}
+{"id":"rm-10","repo":"repomind","type":"symbol","question":"Which tools is the agent allowed to call while answering?","relevantFiles":["lib/agent/tools.ts"]}
+{"id":"rm-11","repo":"repomind","type":"concept","question":"What instructions does the model get when more than one repository is selected at once?","relevantFiles":["lib/agent/prompts.ts"]}
+{"id":"rm-12","repo":"repomind","type":"concept","question":"How many previous turns of a conversation get replayed to the model?","relevantFiles":["app/api/chat/route.ts"]}
+{"id":"rm-13","repo":"repomind","type":"howto","question":"How does indexing progress get pushed to the browser while it runs?","relevantFiles":["app/api/ingest/route.ts"]}
+{"id":"rm-14","repo":"repomind","type":"concept","question":"How are passwords hashed and checked when somebody logs in with a username?","relevantFiles":["lib/auth.ts"]}
+{"id":"rm-15","repo":"repomind","type":"howto","question":"How do the initial login accounts get created on a fresh install?","relevantFiles":["lib/db/migrate.ts"]}
+{"id":"rm-16","repo":"repomind","type":"debug","question":"Indexing failed with a 404 from GitHub — what would cause that?","relevantFiles":["lib/ingestion/clone.ts"]}
+{"id":"rm-17","repo":"repomind","type":"concept","question":"What keeps OAuth access tokens from ending up in the browser session or JWT?","relevantFiles":["lib/auth.ts"]}
+{"id":"rm-18","repo":"repomind","type":"concept","question":"Why is the Postgres pool stashed on a global, and what problem does that solve?","relevantFiles":["lib/db/index.ts"]}
+{"id":"rm-19","repo":"repomind","type":"concept","question":"When you click a citation in an answer, what renders the file preview?","relevantFiles":["components/CitationModal.tsx"]}
+{"id":"rm-20","repo":"repomind","type":"symbol","question":"Where are the keyboard shortcuts wired up?","relevantFiles":["hooks/useKeyboardShortcuts.ts"]}
+{"id":"rm-21","repo":"repomind","type":"concept","question":"How many commits get pulled in, and where do they come from?","relevantFiles":["lib/ingestion/clone.ts"]}
+{"id":"rm-22","repo":"repomind","type":"howto","question":"How do I run the database, migrations and the app all in containers?","relevantFiles":["docker-compose.yml","README.md"]}
+{"id":"rm-x1","repo":"repomind","type":"symbol_exact","question":"getGitHubToken","relevantFiles":["lib/auth.ts"]}
+{"id":"rm-x2","repo":"repomind","type":"symbol_exact","question":"TokenWindow","relevantFiles":["lib/ingestion/embedder.ts"]}
+{"id":"rm-x3","repo":"repomind","type":"symbol_exact","question":"deleteRepoChunks","relevantFiles":["lib/vector/search.ts"]}
+{"id":"rm-x4","repo":"repomind","type":"symbol_exact","question":"walkRepo","relevantFiles":["lib/ingestion/walker.ts"]}
+{"id":"rm-x5","repo":"repomind","type":"symbol_exact","question":"getAccessibleRepos","relevantFiles":["lib/authz.ts"]}
+{"id":"rm-x6","repo":"repomind","type":"symbol_exact","question":"MAX_HISTORY_MESSAGES","relevantFiles":["app/api/chat/route.ts"]}

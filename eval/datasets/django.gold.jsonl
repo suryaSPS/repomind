@@ -1,0 +1,29 @@
+{"id":"dj-01","repo":"django","type":"symbol","question":"Where is the base Model class defined, with its save and metaclass machinery?","relevantFiles":["django/db/models/base.py"]}
+{"id":"dj-02","repo":"django","type":"concept","question":"How does a queryset get turned into actual SQL?","relevantFiles":["django/db/models/sql/compiler.py"]}
+{"id":"dj-03","repo":"django","type":"concept","question":"How is a CSRF token generated and checked on an incoming POST?","relevantFiles":["django/middleware/csrf.py"]}
+{"id":"dj-04","repo":"django","type":"concept","question":"How are user passwords hashed, and which algorithms are supported?","relevantFiles":["django/contrib/auth/hashers.py"]}
+{"id":"dj-05","repo":"django","type":"concept","question":"How does an incoming URL path get matched to a view function?","relevantFiles":["django/urls/resolvers.py"]}
+{"id":"dj-06","repo":"django","type":"concept","question":"How is a template string tokenized and compiled into nodes?","relevantFiles":["django/template/base.py"]}
+{"id":"dj-07","repo":"django","type":"concept","question":"How does the framework work out which migration operations are needed after a model change?","relevantFiles":["django/db/migrations/autodetector.py"]}
+{"id":"dj-08","repo":"django","type":"architecture","question":"How does the WSGI entry point turn an environ dict into a response?","relevantFiles":["django/core/handlers/wsgi.py","django/core/handlers/base.py"]}
+{"id":"dj-09","repo":"django","type":"concept","question":"How does the test client fake a request without running a server?","relevantFiles":["django/test/client.py"]}
+{"id":"dj-10","repo":"django","type":"symbol","question":"Where are signals connected and dispatched to receivers?","relevantFiles":["django/dispatch/dispatcher.py"]}
+{"id":"dj-11","repo":"django","type":"concept","question":"How is the configured cache backend instantiated and accessed?","relevantFiles":["django/core/cache/__init__.py"]}
+{"id":"dj-12","repo":"django","type":"symbol","question":"Where are the model field types like CharField and IntegerField implemented?","relevantFiles":["django/db/models/fields/__init__.py"]}
+{"id":"dj-13","repo":"django","type":"concept","question":"How do select_related and prefetch_related avoid extra queries?","relevantFiles":["django/db/models/query.py"]}
+{"id":"dj-14","repo":"django","type":"concept","question":"How does the app registry populate and become ready at startup?","relevantFiles":["django/apps/registry.py"]}
+{"id":"dj-15","repo":"django","type":"concept","question":"How are settings loaded lazily from the settings module environment variable?","relevantFiles":["django/conf/__init__.py"]}
+{"id":"dj-16","repo":"django","type":"concept","question":"How is cascading delete worked out across related objects?","relevantFiles":["django/db/models/deletion.py"]}
+{"id":"dj-17","repo":"django","type":"concept","question":"How does the development server restart itself when a file changes?","relevantFiles":["django/utils/autoreload.py"]}
+{"id":"dj-18","repo":"django","type":"concept","question":"How does form field cleaning and validation work?","relevantFiles":["django/forms/fields.py"]}
+{"id":"dj-19","repo":"django","type":"concept","question":"How are values cryptographically signed so they can be round-tripped through a cookie?","relevantFiles":["django/core/signing.py"]}
+{"id":"dj-20","repo":"django","type":"concept","question":"How are async views and middleware handled on the ASGI path?","relevantFiles":["django/core/handlers/asgi.py"]}
+{"id":"dj-21","repo":"django","type":"howto","question":"How is the migrate management command implemented?","relevantFiles":["django/core/management/commands/migrate.py"]}
+{"id":"dj-22","repo":"django","type":"concept","question":"How does template output escaping prevent XSS, and how is a string marked safe?","relevantFiles":["django/utils/html.py","django/utils/safestring.py"]}
+{"id":"dj-23","repo":"django","type":"concept","question":"How are naive and aware datetimes converted for the active time zone?","relevantFiles":["django/utils/timezone.py"]}
+{"id":"dj-x1","repo":"django","type":"symbol_exact","question":"PBKDF2PasswordHasher","relevantFiles":["django/contrib/auth/hashers.py"]}
+{"id":"dj-x2","repo":"django","type":"symbol_exact","question":"SQLCompiler","relevantFiles":["django/db/models/sql/compiler.py"]}
+{"id":"dj-x3","repo":"django","type":"symbol_exact","question":"MigrationAutodetector","relevantFiles":["django/db/migrations/autodetector.py"]}
+{"id":"dj-x4","repo":"django","type":"symbol_exact","question":"URLResolver","relevantFiles":["django/urls/resolvers.py"]}
+{"id":"dj-x5","repo":"django","type":"symbol_exact","question":"mark_safe","relevantFiles":["django/utils/safestring.py"]}
+{"id":"dj-x6","repo":"django","type":"symbol_exact","question":"CsrfViewMiddleware","relevantFiles":["django/middleware/csrf.py"]}

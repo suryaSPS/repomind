@@ -10,10 +10,11 @@ import { useQuickStart } from '@/hooks/useQuickStart'
 interface MainAppProps {
   username: string
   userId: string
+  hasIndexedRepos: boolean
 }
 
-export default function MainApp({ username, userId }: MainAppProps) {
-  const tutorial = useQuickStart(userId)
+export default function MainApp({ username, userId, hasIndexedRepos }: MainAppProps) {
+  const tutorial = useQuickStart(userId, hasIndexedRepos)
   const [activeRepo, setActiveRepo] = useState<{ id: number; name: string } | null>(null)
   const [multiRepo, setMultiRepo] = useState<{ ids: number[]; names: string[] } | null>(null)
   const [restoredSessionId, setRestoredSessionId] = useState<number | null>(null)

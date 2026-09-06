@@ -11,9 +11,10 @@ function subscribe(callback: () => void) {
   }
 }
 
-export function useQuickStart(userId: string) {
+export function useQuickStart(userId: string, hasIndexedRepos: boolean) {
   const key = `repomind:quick-start:v1:${userId}`
   const [dismissed, setDismissed] = useState(false)
+  const [replaying, setReplaying] = useState(false)
   const active = useSyncExternalStore(subscribe, () => {
     try {
       return localStorage.getItem(key) !== 'done'
@@ -24,6 +25,7 @@ export function useQuickStart(userId: string) {
 
   function finish() {
     setDismissed(true)
+    setReplaying(false)
     try {
       localStorage.setItem(key, 'done')
       window.dispatchEvent(new Event('repomind:quick-start'))
@@ -32,11 +34,12 @@ export function useQuickStart(userId: string) {
 
   function restart() {
     setDismissed(false)
+    setReplaying(true)
     try {
       localStorage.removeItem(key)
       window.dispatchEvent(new Event('repomind:quick-start'))
     } catch { /* Storage is optional for the walkthrough. */ }
   }
 
-  return { active: active && !dismissed, finish, restart }
+  return { active: !dismissed && (replaying || (active && !hasIndexedRepos)), finish, restart }
 }

@@ -625,7 +625,7 @@ function ResultsSection() {
   const tiles = [
     { v: `+${gain.toFixed(1)}%`, k: 'Ranking quality', d: `nDCG@10 ${base.ndcg10} → ${shipped.ndcg10}, p = 0.0008` },
     { v: `${EVAL.hnsw.speedup}×`, k: 'Faster vector search', d: `${EVAL.hnsw.exactMs}ms → ${EVAL.hnsw.hnswMs}ms server-side` },
-    { v: `${EVAL.totals.retrieversTested}`, k: 'Strategies compared', d: 'on identical questions, same index' },
+    { v: `${EVAL.totals.retrieversTested}`, k: 'Strategies compared', d: 'same questions, same index' },
     { v: `${EVAL.totals.goldQuestions}`, k: 'Hand-labelled questions', d: `${EVAL.corpus.length} repos, 3 languages` },
   ]
 
@@ -640,9 +640,9 @@ function ResultsSection() {
       <div className="relative max-w-6xl mx-auto px-5 py-24">
         <div className="reveal">
           <SectionHeading
-            kicker="Measured, not claimed"
-            title="Retrieval quality here is a number, not an adjective"
-            sub={`Most code-AI tools ask you to take their word for it. RepoMind ships with an evaluation harness — ${EVAL.totals.goldQuestions} hand-labelled questions, ${EVAL.totals.retrieversTested} retrieval strategies compared head-to-head, significance testing on every claim.`}
+            kicker="How well it works"
+            title="Every retrieval change here was measured"
+            sub={`${EVAL.totals.goldQuestions} hand-labelled questions across ${EVAL.corpus.length} repositories, ${EVAL.totals.retrieversTested} retrieval strategies scored on the same index, with significance testing. The full report is one click away.`}
           />
         </div>
 
@@ -665,12 +665,12 @@ function ResultsSection() {
           style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
         >
           <div className="max-w-[62ch]">
-            <h3 className="text-[15px] font-semibold">Hybrid keyword search was built, measured, and rejected</h3>
+            <h3 className="text-[15px] font-semibold">Hybrid keyword search was measured and rejected</h3>
             <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: 'var(--fg-muted)' }}>
-              The standard RAG recommendation scored <em>below</em> plain vector search on every variant. What actually
-              helped was smaller and stranger: test files and documentation were outranking implementation code, so
-              results are now re-ranked by what kind of file they are — a change validated on a held-out set that
-              caught the first version overfitting.
+              The standard recommendation for RAG scored below plain vector search on every variant. What helped
+              instead was narrower: test files and documentation were outranking implementation code, so results are
+              re-ranked by what kind of file they are. A held-out set caught the first version of that fix overfitting
+              before it shipped.
             </p>
           </div>
           <Link

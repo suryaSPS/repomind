@@ -55,19 +55,34 @@ exact sequential scan. On a 12,290-chunk repository that was 153.9 ms of
 server-side execution; with HNSW it is **0.7 ms — 220× faster** — for 0.009
 nDCG@10 lost to approximate search.
 
-### Honest caveats
+### Answer quality
+
+Retrieval metrics establish that the right file was available. These measure what
+the agent did with it, over **54 graded answers** on the shipped configuration.
+They are computed without a model — cited paths are checked against the
+repository, so nothing sits between the answer and the number.
+
+| metric | value |
+|---|---|
+| Cited paths that resolve to real files | **96.5%** |
+| Answers citing at least one labelled file | 90.7% |
+| Answers containing a path that does not exist | **5.6%** |
+| Tool calls per answer | 5.8 |
+| Cost per answer | **$0.073** |
+| Median latency | 21.4 s |
+
+That last group is the useful part: one answer in eighteen cites a file that is
+not in the repository, which for a citation-based product is the failure mode
+that matters, and a question costs 7.3 cents because the prompt reaches 64K
+tokens as tool results accumulate across steps.
+
+### Held-out validation
 
 The re-ranking weight was first tuned to 0.62, which scored best on the labelled
 set it was designed against. A **70-question held-out set** caught it: on unseen
 questions whose answer really *was* a test file, nDCG@10 collapsed from 0.605 to
 0.148. The shipped weight is 0.9, giving up part of the achievable gain to keep
 held-out performance flat.
-
-The end-to-end answer evaluation is **unfinished** — it stopped at 54 of 111
-answers when the API credit balance ran out, so "better retrieval produces
-better answers" is currently untested. What did complete, computed without a
-model: **96.5%** of cited paths resolve to real files, **5.6%** of answers
-contain a path that does not exist, at **$0.073** and 21.4 s per answer.
 
 ```bash
 npx tsx eval/scripts/run-retrieval.ts --tier gold   # reproduce the table above
@@ -146,6 +161,59 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) — log in with any user from `SEED_USERS`.
+
+## Run the whole stack with Docker
+
+The steps above run Postgres in Docker but the app on your host. You can instead
+run **everything** — database, migrations, and the app — in containers:
+
+```bash
+cp .env.example .env.local   # fill in API keys, NEXTAUTH_SECRET, SEED_USERS
+docker compose up --build
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+### How Docker is wired up here
+
+Three services in `docker-compose.yml`, started in dependency order:
+
+| Service   | Image                    | Role |
+|-----------|--------------------------|------|
+| `db`      | `pgvector/pgvector:pg16` | Postgres with the pgvector extension. Data persists in the `pgdata` volume. Has a healthcheck so dependents wait until it's actually ready. |
+| `migrate` | built from `Dockerfile` (`builder` stage) | One-off container: enables pgvector, applies Drizzle migrations, seeds `SEED_USERS`, then exits. Uses the `builder` stage because it still has `tsx` + the source. |
+| `app`     | built from `Dockerfile` (`runner` stage) | The Next.js server. Waits for `db` to be healthy **and** `migrate` to finish before starting. |
+
+The **`Dockerfile` is multi-stage** to keep the final image small:
+
+1. **`deps`** — `npm ci` once, cached on the lockfile.
+2. **`builder`** — `next build`. Because `next.config.ts` sets `output: 'standalone'`,
+   Next traces exactly which files are needed and emits a self-contained
+   `.next/standalone/server.js`.
+3. **`runner`** — copies only `standalone/` + `static/` + `public/`, runs as a
+   non-root `nextjs` user, and starts `node server.js`. No dev dependencies, no
+   source tree, no `next` CLI ship in this image.
+
+**Config flows in two ways.** Secrets (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+`NEXTAUTH_SECRET`, `SEED_USERS`, OAuth creds) come from `.env.local` via
+`env_file`. `DATABASE_URL` and `NEXTAUTH_URL` are **overridden per-service** in
+Compose so containers reach Postgres at `db:5432` over the Compose network
+(your `.env.local` still points at `localhost` for host-based `npm run dev`).
+
+**Volumes / persistence.** `pgdata` holds the database; `repodata` is mounted at
+`/app/data/repos` so downloaded repo tarballs survive restarts. Repo ingestion
+uses the GitHub REST API (tarball + commits/diff over `fetch`), so the app image
+needs **no `git` binary**.
+
+Useful commands:
+
+```bash
+docker compose up --build          # build + run the full stack
+docker compose up -d db            # just Postgres (the original workflow)
+docker compose run --rm migrate    # re-apply migrations / re-seed users
+docker compose logs -f app         # tail the app logs
+docker compose down                # stop (add -v to also wipe volumes)
+```
 
 ## How to use
 

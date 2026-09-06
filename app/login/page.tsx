@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { createAccount } from './actions'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,18 +14,40 @@ export default function LoginPage() {
   const [githubLoading, setGithubLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
+  const [isSignup, setIsSignup] = useState(false)
+  const [notice, setNotice] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setNotice('')
     setLoading(true)
-    const res = await signIn('credentials', { username, password, redirect: false })
-    setLoading(false)
-    if (res?.error) {
-      setError('Invalid username or password')
-    } else {
+    let accountCreated = false
+    try {
+      let loginUsername = username.trim()
+      if (isSignup) {
+        const result = await createAccount({ username, password })
+        if (result.error || !result.username) {
+          setError(result.error ?? 'Could not create your account. Please try again.')
+          return
+        }
+        accountCreated = true
+        loginUsername = result.username
+        setUsername(loginUsername)
+        setIsSignup(false)
+        setNotice('Account created. Sign in with your new username and password.')
+      }
+      const res = await signIn('credentials', { username: loginUsername, password, redirect: false })
+      if (!res || res.error) {
+        setError(accountCreated ? 'Automatic sign-in failed. Please sign in below.' : 'Invalid username or password')
+        return
+      }
       router.push('/')
       router.refresh()
+    } catch {
+      setError(accountCreated ? 'Account created, but sign-in failed. Please sign in below.' : 'Could not connect. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -68,12 +91,12 @@ export default function LoginPage() {
             boxShadow: 'var(--shadow-md)',
           }}
         >
-          <p className="text-sm font-medium mb-4" style={{ color: 'var(--fg-secondary)' }}>Sign in to your account</p>
+          <h2 className="text-sm font-medium mb-4" style={{ color: 'var(--fg-secondary)' }}>{isSignup ? 'Create your account' : 'Sign in to your account'}</h2>
 
           {/* GitHub */}
           <button
             onClick={handleGitHubSignIn}
-            disabled={githubLoading}
+            disabled={loading || githubLoading || googleLoading}
             className="w-full h-10 flex items-center justify-center gap-2.5 rounded-lg font-medium text-sm mb-2.5 border transition-all"
             style={{
               background: githubLoading ? 'var(--bg-surface)' : '#161b22',
@@ -94,7 +117,7 @@ export default function LoginPage() {
           {/* Google */}
           <button
             onClick={handleGoogleSignIn}
-            disabled={googleLoading}
+            disabled={loading || githubLoading || googleLoading}
             className="w-full h-10 flex items-center justify-center gap-2.5 rounded-lg font-medium text-sm mb-5 border transition-all"
             style={{
               background: 'var(--bg-surface)',
@@ -118,7 +141,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-subtle)' }}>or continue with username</span>
+            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>or use a username and password</span>
             <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
           </div>
 
@@ -136,6 +159,11 @@ export default function LoginPage() {
                 onBlur={() => setFocusedField(null)}
                 placeholder="your-username"
                 autoComplete="username"
+                disabled={loading}
+                minLength={isSignup ? 3 : undefined}
+                maxLength={isSignup ? 32 : undefined}
+                pattern={isSignup ? '[a-zA-Z0-9_-]{3,32}' : undefined}
+                aria-describedby={isSignup ? 'signup-username-help' : undefined}
                 required
                 className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
                 style={{
@@ -145,6 +173,7 @@ export default function LoginPage() {
                   boxShadow: focusedField === 'username' ? '0 0 0 3px var(--brand-glow-sm)' : 'none',
                 }}
               />
+              {isSignup && <p id="signup-username-help" className="text-xs mt-1.5" style={{ color: 'var(--fg-muted)' }}>3–32 letters, numbers, underscores, or hyphens.</p>}
             </div>
 
             <div>
@@ -159,7 +188,11 @@ export default function LoginPage() {
                 onFocus={() => setFocusedField('password')}
                 onBlur={() => setFocusedField(null)}
                 placeholder="••••••••"
-                autoComplete="current-password"
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+                disabled={loading}
+                minLength={isSignup ? 12 : undefined}
+                maxLength={isSignup ? 72 : undefined}
+                aria-describedby={isSignup ? 'signup-password-help' : undefined}
                 required
                 className="w-full h-9 px-3 rounded-lg text-sm outline-none transition-all"
                 style={{
@@ -169,10 +202,13 @@ export default function LoginPage() {
                   boxShadow: focusedField === 'password' ? '0 0 0 3px var(--brand-glow-sm)' : 'none',
                 }}
               />
+              {isSignup && <p id="signup-password-help" className="text-xs mt-1.5" style={{ color: 'var(--fg-muted)' }}>At least 12 characters. You’ll use this password to sign in.</p>}
             </div>
 
+            {notice && <p role="status" className="text-sm" style={{ color: 'var(--fg-secondary)' }}>{notice}</p>}
             {error && (
               <div
+                role="alert"
                 className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
                 style={{ background: 'var(--error-bg)', border: '1px solid rgba(248,113,113,0.18)', color: 'var(--error)' }}
               >
@@ -185,7 +221,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || githubLoading || googleLoading}
               className="w-full h-9 rounded-lg font-medium text-sm transition-opacity"
               style={{
                 background: loading ? 'var(--bg-elevated)' : 'var(--brand)',
@@ -197,11 +233,15 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Spinner color="var(--fg-muted)" />
-                  Signing in…
+                  {isSignup ? 'Creating account…' : 'Signing in…'}
                 </span>
-              ) : 'Sign in'}
+              ) : isSignup ? 'Create account' : 'Sign in'}
             </button>
           </form>
+          <div className="mt-4 text-center text-sm" style={{ color: 'var(--fg-secondary)' }}>
+            {isSignup ? 'Already have an account?' : 'New to RepoMind?'}{' '}
+            <button type="button" disabled={loading || githubLoading || googleLoading} onClick={() => { setIsSignup(!isSignup); setError(''); setNotice(''); setPassword('') }} className="min-h-11 px-2 font-semibold underline underline-offset-4 rounded-lg focus-visible:outline-2" style={{ color: 'var(--brand)' }}>{isSignup ? 'Sign in' : 'Sign up'}</button>
+          </div>
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: 'var(--fg-subtle)' }}>

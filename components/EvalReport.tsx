@@ -59,17 +59,29 @@ const FAILURES = [
 
 // ── Primitives ───────────────────────────────────────────────────────────────
 
+/**
+ * Sections sit on a two-column grid: an index rail carrying the number, and the
+ * content column. The rail is what makes the page read as a document with a
+ * structure rather than a stack of cards, and it gives every rule and table a
+ * common left edge to align to.
+ */
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="pt-14">
-      <h2
-        className="text-[19px] font-semibold tracking-tight pb-2 mb-5"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <span className="tabular-nums mr-2.5" style={{ color: 'var(--fg-subtle)', fontWeight: 400 }}>{n}</span>
-        {title}
-      </h2>
-      {children}
+    <section className="pt-14 grid grid-cols-1 md:grid-cols-[64px_1fr] gap-x-8">
+      <div className="hidden md:block pt-[3px]">
+        <span className="font-mono text-[11px] tabular-nums" style={{ color: 'var(--fg-subtle)' }}>
+          {n.padStart(2, '0')}
+        </span>
+      </div>
+      <div className="min-w-0">
+        <h2 className="text-[18px] font-semibold tracking-tight pb-2.5 mb-6" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="md:hidden font-mono text-[12px] tabular-nums mr-2.5" style={{ color: 'var(--fg-subtle)', fontWeight: 400 }}>
+            {n.padStart(2, '0')}
+          </span>
+          {title}
+        </h2>
+        {children}
+      </div>
     </section>
   )
 }
@@ -81,18 +93,28 @@ function Body({ children }: { children: React.ReactNode }) {
   return <p className="text-[14.5px] leading-relaxed mb-4 max-w-[76ch]" style={{ color: 'var(--fg-muted)' }}>{children}</p>
 }
 
-function Panel({ children, tint }: { children: React.ReactNode; tint?: 'brand' | 'warn' }) {
+/**
+ * An aside, set as a ruled block with a label rather than a tinted card with an
+ * accent rail down its left edge. The rail-on-a-fill pattern reads as a generic
+ * "callout component"; rules and a label read as a document.
+ *
+ * `tone` colours only the label, never the surface — the words carry the
+ * severity, so the block does not need to shout in the background.
+ */
+function Note({ label, children, tone = 'neutral' }: { label: string; children: React.ReactNode; tone?: 'neutral' | 'warn' }) {
   return (
-    <div
-      className="rounded-xl border p-5 my-6"
-      style={{
-        background: tint === 'brand' ? 'var(--brand-glow-sm)' : tint === 'warn' ? 'var(--error-bg)' : 'var(--bg-card)',
-        borderColor: 'var(--border)',
-        borderLeft: tint ? `2px solid ${tint === 'brand' ? 'var(--brand)' : 'var(--error)'}` : undefined,
-      }}
+    <aside
+      className="my-7 py-4"
+      style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}
     >
+      <p
+        className="font-mono text-[10px] uppercase tracking-[0.14em] mb-2.5"
+        style={{ color: tone === 'warn' ? 'var(--warning)' : 'var(--brand)' }}
+      >
+        {label}
+      </p>
       {children}
-    </div>
+    </aside>
   )
 }
 
@@ -111,15 +133,15 @@ function Table({
 }) {
   return (
     <div className="my-5">
-      <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}>
+      <div className="overflow-x-auto">
         <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 560 }}>
           <thead>
             <tr>
               {head.map((h, i) => (
                 <th
                   key={h}
-                  className={`font-mono text-[10px] uppercase tracking-wider font-medium px-3.5 py-2.5 whitespace-nowrap ${i === 0 || leftCols.includes(i) ? 'text-left' : 'text-right'}`}
-                  style={{ color: 'var(--fg-muted)', background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' }}
+                  className={`font-mono text-[10px] uppercase tracking-[0.1em] font-medium pr-4 pb-2 whitespace-nowrap ${i === 0 || leftCols.includes(i) ? 'text-left' : 'text-right'}`}
+                  style={{ color: 'var(--fg-muted)', borderBottom: '1px solid var(--border)' }}
                 >
                   {h}
                 </th>
@@ -137,7 +159,7 @@ function Table({
 function Cell({ children, first, dim, strong }: { children: React.ReactNode; first?: boolean; dim?: boolean; strong?: boolean }) {
   return (
     <td
-      className={`px-3.5 py-2.5 whitespace-nowrap ${first ? 'text-left' : 'text-right font-mono tabular-nums'}`}
+      className={`pr-4 py-2.5 whitespace-nowrap ${first ? 'text-left' : 'text-right font-mono tabular-nums'}`}
       style={{
         borderBottom: '1px solid var(--border-muted)',
         color: dim ? 'var(--fg-muted)' : 'inherit',
@@ -162,22 +184,6 @@ function PBadge({ p, delta }: { p: number | null; delta: number | null }) {
       }}
     >
       {fmtP(p)}
-    </span>
-  )
-}
-
-function Chip({ children, want }: { children: React.ReactNode; want?: boolean }) {
-  return (
-    <span
-      className="font-mono text-[11.5px] px-2 py-1 rounded-md whitespace-nowrap"
-      style={{
-        background: want ? 'var(--brand-glow-sm)' : 'var(--bg-input)',
-        border: `1px solid ${want ? 'var(--brand)' : 'var(--border)'}`,
-        color: want ? 'var(--brand)' : 'var(--fg-muted)',
-        fontWeight: want ? 700 : 400,
-      }}
-    >
-      {children}
     </span>
   )
 }
@@ -283,7 +289,7 @@ export default function EvalReport() {
 
       <div className="max-w-[980px] mx-auto px-6 pb-24">
         {/* Header */}
-        <header className="pt-14 pb-8">
+        <header className="pt-14 pb-8 md:pl-[96px]">
           <h1 className="text-[28px] font-semibold tracking-tight">Retrieval evaluation</h1>
           <p className="mt-1 font-mono text-[12px]" style={{ color: 'var(--fg-muted)' }}>
             {meta.join('  ·  ')}
@@ -296,13 +302,13 @@ export default function EvalReport() {
             still does not tell us.
           </p>
 
-          <div className="mt-7 overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+          <div className="mt-7 overflow-x-auto">
             <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
                   {['Summary', 'Before', 'After', 'Change', 'p'].map((h, i) => (
-                    <th key={h} className={`font-mono text-[10px] uppercase tracking-wider font-medium px-3.5 py-2 ${i === 0 ? 'text-left' : 'text-right'}`}
-                      style={{ color: 'var(--fg-muted)', background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                    <th key={h} className={`font-mono text-[10px] uppercase tracking-[0.1em] font-medium pr-4 pb-2 ${i === 0 ? 'text-left' : 'text-right'}`}
+                      style={{ color: 'var(--fg-muted)', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -408,20 +414,20 @@ export default function EvalReport() {
             fell from {base.r1.toFixed(3)} to 0.495. Weighting the vector arm 3:1 recovered most of that but did not
             pass parity.
           </Body>
-          <Panel tint="brand">
-            <p className="text-[14.5px] leading-relaxed mb-3">
-              The premise failed too. A set of {EVAL.typeCounts.symbol_exact} bare-identifier queries — literally{' '}
-              <code className="font-mono text-[13px]">getGitHubToken</code>,{' '}
-              <code className="font-mono text-[13px]">StringToBytes</code> — was added specifically to find the case
-              where keyword search should win. Vector search still beat it, 0.806 to 0.544.
+          <Note label="Why the premise did not hold">
+            <p className="text-[14.5px] leading-relaxed mb-3 max-w-[76ch]">
+              {EVAL.typeCounts.symbol_exact} of the questions are bare identifiers with no surrounding prose —
+              <code className="font-mono text-[13px]"> getGitHubToken</code>,
+              <code className="font-mono text-[13px]"> StringToBytes</code> — included specifically to test the case
+              keyword search is supposed to win. Vector search scored 0.806 against 0.544 on that slice.
             </p>
-            <p className="text-[14.5px] leading-relaxed" style={{ color: 'var(--fg-muted)' }}>
-              The reason is in the ingest path: chunks are embedded as{' '}
+            <p className="text-[14.5px] leading-relaxed max-w-[76ch]" style={{ color: 'var(--fg-muted)' }}>
+              The cause is in the ingest path. Chunks are embedded as{' '}
               <code className="font-mono text-[13px]">File: {'{path}'}\n\n{'{content}'}</code>, so the file path is
-              inside the embedded text. The folklore assumes an embedding model cannot see an identifier; here it
-              could, and the path gave it a second route in.
+              part of the embedded text and an identifier appearing in a path is reachable by vector search. The
+              usual argument for a keyword arm assumes it is not.
             </p>
-          </Panel>
+          </Note>
         </Section>
 
         <Section n="3" title="Failure analysis">
@@ -429,20 +435,29 @@ export default function EvalReport() {
             Seven questions retrieved no correct file at any k. Inspecting them individually showed a single shared
             cause rather than seven unrelated ones.
           </Lede>
-          <div className="rounded-xl border overflow-hidden my-6" style={{ borderColor: 'var(--border)', background: 'var(--border)' }}>
+          <div className="my-6" style={{ borderTop: '1px solid var(--border)' }}>
             {FAILURES.map((f) => (
-              <div key={f.q} className="p-4" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-                <p className="text-[14px] mb-3">
-                  {f.mono ? <code className="font-mono text-[13.5px]" style={{ color: 'var(--brand)' }}>{f.q}</code> : <>&ldquo;{f.q}&rdquo;</>}
-                  <span className="font-mono text-[12px] ml-2" style={{ color: 'var(--fg-subtle)' }}>· {f.repo}</span>
-                </p>
-                <div className="flex gap-2 items-center flex-wrap mb-2">
-                  <span className="font-mono text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: 'var(--fg-subtle)' }}>Returned</span>
-                  {f.got.map((g) => <Chip key={g}>{g}</Chip>)}
+              <div key={f.q} className="py-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-x-8 gap-y-3" style={{ borderBottom: '1px solid var(--border-muted)' }}>
+                <div className="min-w-0">
+                  <p className="text-[14px] mb-2.5">
+                    {f.mono
+                      ? <code className="font-mono text-[13.5px]">{f.q}</code>
+                      : <>&ldquo;{f.q}&rdquo;</>}
+                    <span className="font-mono text-[11.5px] ml-2" style={{ color: 'var(--fg-subtle)' }}>{f.repo}</span>
+                  </p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {f.got.map((g) => (
+                      <span key={g} className="font-mono text-[11.5px]" style={{ color: 'var(--fg-muted)' }}>
+                        {g}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="font-mono text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: 'var(--fg-subtle)' }}>Wanted</span>
-                  <Chip want>{f.want}</Chip>
+                <div className="sm:text-right shrink-0">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] mb-1" style={{ color: 'var(--fg-subtle)' }}>
+                    not retrieved
+                  </p>
+                  <code className="font-mono text-[12.5px]" style={{ color: 'var(--brand)' }}>{f.want}</code>
                 </div>
               </div>
             ))}
@@ -502,13 +517,13 @@ export default function EvalReport() {
               )
             })}
           </Table>
-          <Panel tint="warn">
-            <p className="text-[14.5px] leading-relaxed">
-              At weight 0.62, a held-out question whose answer <em>is</em> a test file collapses from{' '}
-              <strong style={{ color: 'var(--fg)' }}>0.605 to 0.148</strong>. A penalty that large stops being a prior
-              and becomes a filter: every test chunk drops below every implementation chunk regardless of similarity.
+          <Note label="Why 0.62 was not shipped" tone="warn">
+            <p className="text-[14.5px] leading-relaxed max-w-[76ch]">
+              At weight 0.62 a held-out question whose answer is a test file scores 0.148, down from 0.605 with no
+              re-ranking. At that magnitude the multiplier no longer reorders candidates, it partitions them: every
+              test chunk falls below every implementation chunk regardless of similarity.
             </p>
-          </Panel>
+          </Note>
           <Body>
             Shipping 0.9 gives up roughly 40% of the achievable gain on the tuned set to keep held-out performance
             flat ({EVAL.heldOut.dense.ndcg10} → {EVAL.heldOut.shipped.ndcg10} nDCG@10, Recall@10 actually improving
@@ -525,18 +540,18 @@ export default function EvalReport() {
             <code className="font-mono text-[13px]">embedding</code>, so every query planned as a sequential scan
             with a sort.
           </Lede>
-          <div className="grid sm:grid-cols-[1fr_auto_1fr] gap-5 items-center my-6">
-            <div className="rounded-xl border p-5" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] mb-2.5" style={{ color: 'var(--fg-muted)' }}>Before · exact scan</p>
-              <p className="text-[30px] font-bold tabular-nums leading-none mb-2">{EVAL.hnsw.exactMs}ms</p>
-              <p className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>Limit → Sort → Seq Scan</p>
-            </div>
-            <div className="font-mono text-[14px] font-bold text-center" style={{ color: 'var(--brand)' }}>{EVAL.hnsw.speedup}×</div>
-            <div className="rounded-xl border p-5" style={{ background: 'var(--brand-glow-sm)', borderColor: 'var(--brand)' }}>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] mb-2.5" style={{ color: 'var(--fg-muted)' }}>After · HNSW</p>
-              <p className="text-[30px] font-bold tabular-nums leading-none mb-2" style={{ color: 'var(--brand)' }}>{EVAL.hnsw.hnswMs}ms</p>
-              <p className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>Limit → Index Scan</p>
-            </div>
+          <div className="my-6 grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-5" style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', paddingTop: 18, paddingBottom: 18 }}>
+            {[
+              { k: 'Sequential scan', v: `${EVAL.hnsw.exactMs}ms`, plan: 'Limit → Sort → Seq Scan', brand: false },
+              { k: 'HNSW index scan', v: `${EVAL.hnsw.hnswMs}ms`, plan: 'Limit → Index Scan', brand: true },
+              { k: 'Difference', v: `${EVAL.hnsw.speedup}×`, plan: `${EVAL.hnsw.ndcgCost} nDCG@10 given up`, brand: false },
+            ].map((b) => (
+              <div key={b.k}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--fg-muted)' }}>{b.k}</p>
+                <p className="text-[27px] font-semibold tabular-nums leading-none mb-2" style={{ color: b.brand ? 'var(--brand)' : 'var(--fg)' }}>{b.v}</p>
+                <p className="font-mono text-[11px]" style={{ color: 'var(--fg-subtle)' }}>{b.plan}</p>
+              </div>
+            ))}
           </div>
           <Body>
             Server-side execution time, median of 7 runs via <code className="font-mono text-[13px]">EXPLAIN ANALYZE</code> on
@@ -552,26 +567,25 @@ export default function EvalReport() {
             Retrieval metrics establish only that the correct file was available to the model. They do not measure
             whether it was used, cited accurately, or replaced with a path that does not exist.
           </Lede>
-          <Panel tint="warn">
-            <p className="text-[14.5px] leading-relaxed">
-              <strong style={{ color: 'var(--fg)' }}>This section is incomplete.</strong> The API credit balance ran
-              out mid-run: {EVAL.endToEnd.graded} of {EVAL.totals.goldQuestions} questions completed, and the LLM-judge
-              grading did not run. Everything below is computed deterministically — no model involved — over those answers.
+          <Note label="Incomplete run" tone="warn">
+            <p className="text-[14.5px] leading-relaxed max-w-[76ch]">
+              {EVAL.endToEnd.graded} of {EVAL.totals.goldQuestions} questions completed before the API credit
+              balance was exhausted, and the model-graded scoring did not run at all. The figures below are the
+              deterministic subset, computed without a model, over the answers that finished.
             </p>
-          </Panel>
-          <div className="grid sm:grid-cols-3 gap-3 my-6">
+          </Note>
+          <div className="my-6 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6" style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
             {[
-              { v: pct(EVAL.endToEnd.validRate), k: 'Citations that resolve', d: 'cited paths that exist in the repo' },
-              { v: pct(EVAL.endToEnd.citedGold), k: 'Cite the right file', d: 'at least one labelled file' },
-              { v: pct(EVAL.endToEnd.badPathRate), k: 'Contain a bad path', d: 'the failure mode that matters', warn: true },
-              { v: `${EVAL.endToEnd.toolCalls}`, k: 'Tool calls per answer', d: 'search, open, grep, commits' },
-              { v: `$${EVAL.endToEnd.costPerAnswer}`, k: 'Cost per answer', d: `${(EVAL.endToEnd.promptTokens / 1000).toFixed(0)}K prompt tokens` },
-              { v: `${EVAL.endToEnd.latencyP50}s`, k: 'Median latency', d: 'question to full answer' },
+              { v: pct(EVAL.endToEnd.validRate), k: 'Cited paths that exist', warn: false },
+              { v: pct(EVAL.endToEnd.citedGold), k: 'Cite a labelled file', warn: false },
+              { v: pct(EVAL.endToEnd.badPathRate), k: 'Answers with a bad path', warn: true },
+              { v: `${EVAL.endToEnd.toolCalls}`, k: 'Tool calls per answer', warn: false },
+              { v: `$${EVAL.endToEnd.costPerAnswer}`, k: 'Cost per answer', warn: false },
+              { v: `${EVAL.endToEnd.latencyP50}s`, k: 'Median latency', warn: false },
             ].map((m) => (
-              <div key={m.k} className="rounded-xl border p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-                <p className="text-[24px] font-bold tabular-nums leading-none mb-2" style={{ color: m.warn ? 'var(--warning)' : 'var(--brand)' }}>{m.v}</p>
-                <p className="text-[13px] font-semibold">{m.k}</p>
-                <p className="mt-0.5 text-[11.5px] leading-snug" style={{ color: 'var(--fg-muted)' }}>{m.d}</p>
+              <div key={m.k}>
+                <p className="text-[23px] font-semibold tabular-nums leading-none mb-1.5" style={{ color: m.warn ? 'var(--warning)' : 'var(--fg)' }}>{m.v}</p>
+                <p className="text-[12.5px]" style={{ color: 'var(--fg-muted)' }}>{m.k}</p>
               </div>
             ))}
           </div>
@@ -604,7 +618,7 @@ export default function EvalReport() {
           </ul>
         </Section>
 
-        <footer className="mt-16 pt-7 flex flex-wrap gap-4 items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
+        <footer className="mt-16 pt-7 md:pl-[96px] flex flex-wrap gap-4 items-center justify-between" style={{ borderTop: '1px solid var(--border)' }}>
           <p className="text-[12.5px]" style={{ color: 'var(--fg-muted)' }}>
             Generated from <code className="font-mono text-[12px]">eval/results/</code> on {EVAL.generatedAt}. Reproduce with{' '}
             <code className="font-mono text-[12px]">npx tsx eval/scripts/run-retrieval.ts --tier gold</code>.

@@ -7,7 +7,9 @@ import type { NextRequest } from 'next/server'
  * Node.js-only deps (pg, bcryptjs) that crash in Vercel's Edge Runtime.
  *
  * `/` is public: logged-out visitors see the landing page there
- * (app/page.tsx renders it when no session exists).
+ * (app/page.tsx renders it when no session exists). `/results` is public too —
+ * it is the evaluation report the landing page links to, and gating it behind
+ * a login would defeat the point of publishing it.
  */
 export function proxy(request: NextRequest) {
   const sessionToken =
@@ -15,7 +17,8 @@ export function proxy(request: NextRequest) {
     request.cookies.get('__Secure-authjs.session-token')?.value
 
   const pathname = request.nextUrl.pathname
-  const isPublicPage = pathname === '/' || pathname === '/login'
+  const PUBLIC_PAGES = ['/', '/login', '/results']
+  const isPublicPage = PUBLIC_PAGES.includes(pathname)
 
   if (!sessionToken && !isPublicPage) {
     return NextResponse.redirect(new URL('/login', request.url))

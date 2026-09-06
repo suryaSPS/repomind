@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
+import { EVAL } from './eval-data'
 
 /**
  * Public landing page — shown at `/` to logged-out visitors.
@@ -39,6 +40,7 @@ export default function LandingPage() {
           </div>
           <div className="hidden sm:flex items-center gap-6 text-sm" style={{ color: 'var(--fg-muted)' }}>
             <a href="#features" className="hover:opacity-80 transition-opacity">What it does</a>
+            <a href="#results" className="hover:opacity-80 transition-opacity">Results</a>
             <a href="#why" className="hover:opacity-80 transition-opacity">Why</a>
             <a href="#how" className="hover:opacity-80 transition-opacity">How it works</a>
           </div>
@@ -137,6 +139,8 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <ResultsSection />
 
       {/* ─── Why ─── */}
       <section
@@ -605,5 +609,82 @@ function HeroMock() {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ── Evaluation teaser ──────────────────────────────────────────────────────
+   A short proof panel; the full report lives at /results. Figures come from
+   components/eval-data.ts, generated out of eval/results/*.json.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+function ResultsSection() {
+  const shipped = EVAL.retrievers.find((r) => r.state === 'shipped')!
+  const base = EVAL.retrievers.find((r) => r.state === 'baseline')!
+  const gain = ((shipped.ndcg10 - base.ndcg10) / base.ndcg10) * 100
+
+  const tiles = [
+    { v: `+${gain.toFixed(1)}%`, k: 'Ranking quality', d: `nDCG@10 ${base.ndcg10} → ${shipped.ndcg10}, p = 0.0008` },
+    { v: `${EVAL.hnsw.speedup}×`, k: 'Faster vector search', d: `${EVAL.hnsw.exactMs}ms → ${EVAL.hnsw.hnswMs}ms server-side` },
+    { v: `${EVAL.totals.retrieversTested}`, k: 'Strategies compared', d: 'on identical questions, same index' },
+    { v: `${EVAL.totals.goldQuestions}`, k: 'Hand-labelled questions', d: `${EVAL.corpus.length} repos, 3 languages` },
+  ]
+
+  return (
+    <section
+      id="results"
+      className="relative scroll-mt-16 overflow-hidden"
+      style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}
+    >
+      <div aria-hidden className="blob w-[380px] h-[380px] -top-28 -right-20" style={{ background: 'var(--brand-glow-sm)', animationDelay: '-3s' }} />
+
+      <div className="relative max-w-6xl mx-auto px-5 py-24">
+        <div className="reveal">
+          <SectionHeading
+            kicker="Measured, not claimed"
+            title="Retrieval quality here is a number, not an adjective"
+            sub={`Most code-AI tools ask you to take their word for it. RepoMind ships with an evaluation harness — ${EVAL.totals.goldQuestions} hand-labelled questions, ${EVAL.totals.retrieversTested} retrieval strategies compared head-to-head, significance testing on every claim.`}
+          />
+        </div>
+
+        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {tiles.map((t, i) => (
+            <div
+              key={t.k}
+              className="reveal rounded-xl border p-5 transition-transform duration-300 hover:-translate-y-1"
+              style={{ background: 'var(--bg)', borderColor: 'var(--border)', ['--d' as string]: `${(i % 4) * 0.08}s` }}
+            >
+              <p className="text-[28px] leading-none font-semibold tracking-tight tabular-nums" style={{ color: 'var(--brand)' }}>{t.v}</p>
+              <h3 className="mt-2.5 text-[13.5px] font-semibold">{t.k}</h3>
+              <p className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--fg-muted)' }}>{t.d}</p>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="reveal mt-3 rounded-xl border p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center gap-6 justify-between"
+          style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
+        >
+          <div className="max-w-[62ch]">
+            <h3 className="text-[15px] font-semibold">Hybrid keyword search was built, measured, and rejected</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: 'var(--fg-muted)' }}>
+              The standard RAG recommendation scored <em>below</em> plain vector search on every variant. What actually
+              helped was smaller and stranger: test files and documentation were outranking implementation code, so
+              results are now re-ranked by what kind of file they are — a change validated on a held-out set that
+              caught the first version overfitting.
+            </p>
+          </div>
+          <Link
+            href="/results"
+            className="press shrink-0 h-11 px-5 inline-flex items-center gap-2 rounded-lg text-sm font-semibold btn-lift cursor-pointer"
+            style={{ background: 'var(--brand)', color: 'var(--brand-fg)' }}
+          >
+            Show complete evals
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    </section>
   )
 }

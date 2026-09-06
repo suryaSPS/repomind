@@ -373,18 +373,14 @@ export function ThinkingIndicator() {
           border: '1px solid var(--border)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 18 }}>
-            {[16, 10, 20, 12, 18, 8].map((h, i) => (
-              <span
-                key={i}
-                className="wave-bar"
-                style={{ height: `${h}px`, background: 'var(--brand)', opacity: 0.8 }}
-              />
-            ))}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          {/* A skeleton of code lines with a highlight sweeping down them —
+              what the agent is actually doing while this is on screen. */}
+          <span className="code-scan" aria-hidden>
+            <i /><i /><i /><i />
+          </span>
           <span style={{ fontSize: '12px', color: 'var(--fg-muted)' }}>
-            Searching codebase…
+            Reading the codebase…
           </span>
         </div>
       </div>

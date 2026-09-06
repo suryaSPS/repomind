@@ -187,6 +187,19 @@ p code, li code {
   50%       { transform: scaleY(1);    opacity: 1; }
 }
 
+/* Code scan — the "reading the codebase" indicator.
+   A skeleton of code lines with a highlight sweeping down them, which is what
+   the agent is actually doing. Replaces an equaliser bounce that read as an
+   audio visualiser and said nothing about code. */
+@keyframes code-scan-sweep {
+  0%        { transform: translateY(-120%); }
+  60%, 100% { transform: translateY(320%); }
+}
+@keyframes code-line-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.75; }
+}
+
 /* Shimmer — skeleton / progress */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
@@ -234,6 +247,38 @@ p code, li code {
 .slide-right { animation: slideInRight 0.28s ease-out; }
 
 /* Wave bar set */
+.code-scan {
+  position: relative;
+  width: 46px;
+  height: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.5px;
+}
+.code-scan i {
+  display: block;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--fg-muted);
+  animation: code-line-pulse 1.8s ease-in-out infinite;
+}
+/* Ragged widths so it reads as code rather than a progress bar. */
+.code-scan i:nth-child(1) { width: 100%; animation-delay: 0s; }
+.code-scan i:nth-child(2) { width: 62%;  animation-delay: 0.2s; }
+.code-scan i:nth-child(3) { width: 84%;  animation-delay: 0.4s; }
+.code-scan i:nth-child(4) { width: 48%;  animation-delay: 0.6s; }
+.code-scan::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: 7px;
+  background: linear-gradient(180deg, transparent, var(--brand), transparent);
+  opacity: 0.85;
+  animation: code-scan-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 .wave-bar {
   display: inline-block;
   width: 2.5px;
@@ -433,6 +478,11 @@ p code, li code {
 }
 
 /* Reduced motion: everything lands instantly, nothing drifts */
+@media (prefers-reduced-motion: reduce) {
+  .code-scan::after { animation: none; opacity: 0; }
+  .code-scan i { animation: none; opacity: 0.5; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing .blob,
   .landing .float-card { animation: none !important; }

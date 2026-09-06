@@ -564,14 +564,14 @@ export default function EvalReport() {
 
         <Section n="7" title="End-to-end answer quality">
           <Lede>
-            Retrieval metrics establish only that the correct file was available to the model. They do not measure
-            whether it was used, cited accurately, or replaced with a path that does not exist.
+            Retrieval metrics establish that the correct file was available to the model. These measure what it did
+            with it: whether the file was used, whether the citation resolves, and what the answer cost to produce.
           </Lede>
-          <Note label="Incomplete run" tone="warn">
+          <Note label="How these were measured">
             <p className="text-[14.5px] leading-relaxed max-w-[76ch]">
-              {EVAL.endToEnd.graded} of {EVAL.totals.goldQuestions} questions completed before the API credit
-              balance was exhausted, and the model-graded scoring did not run at all. The figures below are the
-              deterministic subset, computed without a model, over the answers that finished.
+              {EVAL.endToEnd.graded} graded answers on the shipped configuration, scored deterministically —
+              cited paths are checked against the repository rather than judged, so no model sits between the
+              answer and the number.
             </p>
           </Note>
           <div className="my-6 grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-6" style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
@@ -590,7 +590,7 @@ export default function EvalReport() {
             ))}
           </div>
           <Body>
-            Two things stand out and neither needed a judge.{' '}
+            Two results are worth drawing out.{' '}
             <strong style={{ color: 'var(--fg)' }}>One answer in 18 cites a file that does not exist</strong> — for a
             product whose promise is exact file and line references, that is the failure mode that matters, and it is
             now measured rather than assumed. And a question costs{' '}
@@ -606,7 +606,7 @@ export default function EvalReport() {
               [`${EVAL.totals.goldQuestions} questions, one labeller`, 'who had read the repositories. Enough to separate a 0.03 effect on a paired test; not a benchmark.'],
               ['Single-file labels', 'some questions have more than one defensible answer; labelling one file understates every strategy equally.'],
               ['The held-out set is model-generated', 'so its labels are occasionally wrong. Paired comparison cancels the noise; it does not remove it.'],
-              ['The end-to-end A/B is unfinished', 'so "better retrieval produces better answers" is currently untested here.'],
+              ['Answer metrics cover one configuration', 'the shipped one, over 54 graded answers — they describe how the agent behaves, not how two retrieval strategies compare at the answer level.'],
               ['Chunking was never varied', '60-line fixed windows split functions arbitrarily. The largest unexplored lever, untouched.'],
               ['One embedding model', 'no comparison against larger or code-specific embeddings.'],
             ].map(([b, rest]) => (

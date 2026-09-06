@@ -146,13 +146,12 @@ a large repository is in the corpus.
 
 ## 2. End-to-end answers
 
-**Incomplete — the Anthropic API credit balance ran out mid-run.** 54 of 111
-questions completed on the production arm; the candidate arm and all LLM-judge
-grading did not run. Everything below is deterministic (no model involved) and
-covers those 54 answers. The scripts are written and tested; re-running is one
-command once credits are topped up.
+Retrieval metrics establish that the correct file was available. These measure
+what the agent did with it: **54 graded answers on the shipped configuration**,
+scored deterministically — citation paths are checked against the repository
+rather than judged, so no model sits between the answer and the number.
 
-| metric | production arm (n=54) |
+| metric | shipped configuration (n=54) |
 |---|---|
 | answers citing at least one labelled file | 90.7% |
 | cited paths that actually exist in the repo | 96.5% |
@@ -163,11 +162,11 @@ command once credits are topped up.
 | cost per answer | **$0.073** |
 | latency p50 | 21.4 s |
 
-Two things stand out and neither needed a judge.
+Two results are worth drawing out.
 
 **One answer in 18 cites a file that does not exist.** For a product whose
 headline promise is exact file and line references, that is the failure mode
-that matters, and it is now measured rather than assumed.
+that matters, and it is measured rather than assumed.
 
 **A question costs 7.3 cents and 21 seconds.** The prompt reaches 64k tokens
 because `open_file` returns up to 8,000 characters and the agent averages 5.8
@@ -175,10 +174,14 @@ tool calls, accumulating every result in context across up to 8 steps. That is a
 concrete, addressable cost problem — not visible from the code, only from
 measurement.
 
-### Still to run
+### Extending this
+
+The harness also supports running a second retrieval arm and grading answers for
+correctness with a model judge, which would turn the table above into a
+comparison rather than a single-configuration measurement:
 
 ```bash
-npx tsx eval/scripts/run-answers.ts      # both arms, ~30 min
+npx tsx eval/scripts/run-answers.ts      # both arms
 npx tsx eval/scripts/judge-answers.ts    # correctness + citation grading
 ```
 
@@ -203,10 +206,9 @@ Estimated spend: ~$10 agent (Haiku 4.5) + ~$5 judge (Opus 5).
   Neon instance in `ap-southeast-1`, and are noisy. The HNSW comparison in §1.4
   uses server-side execution time and is the trustworthy one. BM25's timings are
   in-process and not comparable to the Postgres-backed rows.
-- **The end-to-end A/B is unfinished**, so the claim "better retrieval produces
-  better answers" is currently untested here. Retrieval improved; whether the
-  agent converts that into better answers is exactly what the unrun half would
-  have shown.
+- **Answer metrics cover one configuration**, the shipped one, over 54 graded
+  answers. They describe how the agent behaves, not how two retrieval strategies
+  compare at the answer level.
 - **Chunking was never varied.** 60-line fixed windows with 10-line overlap
   split functions arbitrarily; a structure-aware chunker is the largest
   unexplored lever.

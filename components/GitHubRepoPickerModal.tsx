@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface GitHubRepo {
   id: number
@@ -53,6 +54,33 @@ export default function GitHubRepoPickerModal({ onClose, onSelectRepo }: GitHubR
   const [filter, setFilter] = useState<'all' | 'owned' | 'collab'>('all')
   const [adding, setAdding] = useState<string | null>(null)
 
+  /**
+   * Rendered into document.body rather than in place.
+   *
+   * The sidebar's wrapper carries a `translate-x` for the mobile drawer
+   * animation (app/MainApp.tsx), and a non-none transform makes an element the
+   * containing block for its `position: fixed` descendants. Left in the tree,
+   * this overlay's `inset-0` resolved to the 256px sidebar instead of the
+   * viewport, so it opened as a sliver on the left. A portal escapes any
+   * transformed ancestor, and keeps doing so if the layout changes later.
+   *
+   */
+  // Escape closes it — a centred overlay that traps you is worse than a sliver.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  // Stop the page behind the overlay scrolling with the wheel.
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [])
+
   useEffect(() => {
     fetch('/api/github/repos')
       .then((r) => r.json())
@@ -83,11 +111,18 @@ export default function GitHubRepoPickerModal({ onClose, onSelectRepo }: GitHubR
     onSelectRepo(repo.html_url, repo.name)
   }
 
-  return (
+  // This modal only ever renders from a user interaction, so it is always
+  // client-side; the guard is a safety net if it is ever rendered during SSR.
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="My GitHub Repositories"
     >
       <div
         className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border expand-in"
@@ -283,6 +318,7 @@ export default function GitHubRepoPickerModal({ onClose, onSelectRepo }: GitHubR
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

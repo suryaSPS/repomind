@@ -61,21 +61,24 @@ const FAILURES = [
 
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="pt-16">
-      <div className="flex gap-4 items-baseline mb-3">
-        <span className="font-mono text-[12px] font-bold shrink-0 pt-1" style={{ color: 'var(--brand)' }}>{n}</span>
-        <h2 className="text-[26px] font-semibold tracking-tight" style={{ textWrap: 'balance' }}>{title}</h2>
-      </div>
-      <div className="sm:pl-8">{children}</div>
+    <section className="pt-14">
+      <h2
+        className="text-[19px] font-semibold tracking-tight pb-2 mb-5"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
+        <span className="tabular-nums mr-2.5" style={{ color: 'var(--fg-subtle)', fontWeight: 400 }}>{n}</span>
+        {title}
+      </h2>
+      {children}
     </section>
   )
 }
 
 function Lede({ children }: { children: React.ReactNode }) {
-  return <p className="text-[16px] leading-relaxed mb-4 max-w-[72ch]">{children}</p>
+  return <p className="text-[14.5px] leading-relaxed mb-4 max-w-[76ch]" style={{ color: 'var(--fg-secondary)' }}>{children}</p>
 }
 function Body({ children }: { children: React.ReactNode }) {
-  return <p className="text-[14.5px] leading-relaxed mb-4 max-w-[72ch]" style={{ color: 'var(--fg-muted)' }}>{children}</p>
+  return <p className="text-[14.5px] leading-relaxed mb-4 max-w-[76ch]" style={{ color: 'var(--fg-muted)' }}>{children}</p>
 }
 
 function Panel({ children, tint }: { children: React.ReactNode; tint?: 'brand' | 'warn' }) {
@@ -238,18 +241,28 @@ export default function EvalReport() {
   const base = EVAL.retrievers.find((r) => r.state === 'baseline')!
   const django = EVAL.corpus.find((c) => c.key === 'django')!
 
-  const headline = [
-    { v: `${base.ndcg10} → ${shipped.ndcg10}`, k: 'nDCG@10', d: `${EVAL.totals.goldQuestions} hand-labelled questions · paired bootstrap p = ${fmtP(shipped.pValue)}`, brand: true },
-    { v: `${EVAL.hnsw.speedup}×`, k: 'Vector search', d: `${EVAL.hnsw.exactMs}ms → ${EVAL.hnsw.hnswMs}ms server-side on ${EVAL.hnsw.onChunks.toLocaleString()} chunks`, brand: true },
-    { v: `${EVAL.heldOut.dense.ndcg10} → ${EVAL.heldOut.shipped.ndcg10}`, k: 'Held-out check', d: `${EVAL.totals.silverQuestions} unseen questions — flat by design; the first version scored 0.718`, brand: false },
-    { v: pct(EVAL.endToEnd.validRate), k: 'Citations that resolve', d: `1 answer in 18 cites a path that does not exist (${EVAL.endToEnd.graded} graded)`, brand: false },
+  const summary = [
+    { metric: 'nDCG@10', before: base.ndcg10.toFixed(3), after: shipped.ndcg10.toFixed(3), delta: `+${(shipped.ndcg10 - base.ndcg10).toFixed(3)}`, p: fmtP(shipped.pValue) },
+    { metric: 'MRR', before: base.mrr.toFixed(3), after: shipped.mrr.toFixed(3), delta: `+${(shipped.mrr - base.mrr).toFixed(3)}`, p: '' },
+    { metric: 'Recall@1', before: base.r1.toFixed(3), after: shipped.r1.toFixed(3), delta: `+${(shipped.r1 - base.r1).toFixed(3)}`, p: '' },
+    { metric: 'Recall@10', before: base.r10.toFixed(3), after: shipped.r10.toFixed(3), delta: `+${(shipped.r10 - base.r10).toFixed(3)}`, p: '' },
+    { metric: 'Vector search latency', before: `${EVAL.hnsw.exactMs}ms`, after: `${EVAL.hnsw.hnswMs}ms`, delta: `${EVAL.hnsw.speedup}× faster`, p: '' },
+  ]
+
+  const meta = [
+    `${EVAL.totals.goldQuestions} labelled questions`,
+    `${EVAL.totals.silverQuestions} held-out`,
+    `${EVAL.corpus.length} repositories`,
+    `${EVAL.totals.files.toLocaleString()} files`,
+    `${EVAL.totals.chunks.toLocaleString()} chunks`,
+    `${EVAL.totals.retrieversTested} strategies`,
   ]
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
       {/* Nav */}
       <header className="glass sticky top-0 z-50">
-        <nav className="max-w-[1080px] mx-auto flex items-center justify-between px-6 h-14">
+        <nav className="max-w-[980px] mx-auto flex items-center justify-between px-6 h-14">
           <Link href="/" className="flex items-center gap-2 text-[13px] hover:opacity-80 transition-opacity" style={{ color: 'var(--fg-muted)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -260,46 +273,64 @@ export default function EvalReport() {
             href="https://github.com/suryaSPS/RepoMind/tree/main/eval"
             target="_blank"
             rel="noreferrer"
-            className="text-[13px] font-medium hover:opacity-80 transition-opacity"
-            style={{ color: 'var(--brand)' }}
+            className="text-[13px] hover:opacity-80 transition-opacity"
+            style={{ color: 'var(--fg-muted)' }}
           >
             Harness on GitHub ↗
           </a>
         </nav>
       </header>
 
-      <div className="max-w-[1080px] mx-auto px-6 pb-24">
-        {/* Masthead */}
-        <header className="pt-16 pb-10" style={{ borderBottom: '1px solid var(--border)' }}>
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] mb-5 flex items-center gap-2.5" style={{ color: 'var(--brand)' }}>
-            <span className="w-5 h-px" style={{ background: 'var(--brand)' }} />
-            Retrieval evaluation · {EVAL.generatedAt}
-          </p>
-          <h1 className="text-[clamp(32px,5vw,52px)] leading-[1.05] font-bold tracking-[-0.028em] max-w-[19ch]" style={{ textWrap: 'balance' }}>
-            The tests were burying the code
-          </h1>
-          <p className="mt-5 text-[18px] leading-relaxed max-w-[62ch]" style={{ color: 'var(--fg-muted)' }}>
-            RepoMind answers questions about a codebase with cited file and line references. Its retrieval had
-            never been measured. Building a harness around it produced one negative result, one diagnosis, and a{' '}
-            <strong style={{ color: 'var(--fg)' }}>{EVAL.hnsw.speedup}× speedup nobody had noticed was available</strong> —
-            and caught the first fix overfitting to the set it was designed against.
+      <div className="max-w-[980px] mx-auto px-6 pb-24">
+        {/* Header */}
+        <header className="pt-14 pb-8">
+          <h1 className="text-[28px] font-semibold tracking-tight">Retrieval evaluation</h1>
+          <p className="mt-1 font-mono text-[12px]" style={{ color: 'var(--fg-muted)' }}>
+            {meta.join('  ·  ')}
           </p>
 
-          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-xl overflow-hidden border" style={{ background: 'var(--border)', borderColor: 'var(--border)' }}>
-            {headline.map((h) => (
-              <div key={h.k} className="p-5" style={{ background: 'var(--bg-card)' }}>
-                <p className="font-mono text-[10.5px] uppercase tracking-[0.13em] mb-3" style={{ color: 'var(--fg-muted)' }}>{h.k}</p>
-                <p className="text-[26px] font-bold tracking-tight tabular-nums leading-none mb-2" style={{ color: h.brand ? 'var(--brand)' : 'var(--fg)' }}>{h.v}</p>
-                <p className="text-[12px] leading-snug" style={{ color: 'var(--fg-muted)' }}>{h.d}</p>
-              </div>
-            ))}
+          <p className="mt-6 text-[14.5px] leading-relaxed max-w-[76ch]" style={{ color: 'var(--fg-secondary)' }}>
+            RepoMind puts the five nearest code chunks into the prompt before its agent starts calling tools.
+            None of that had been measured. This is what the harness in{' '}
+            <code className="font-mono text-[13px]">eval/</code> found, what changed as a result, and what it
+            still does not tell us.
+          </p>
+
+          <div className="mt-7 overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--border)' }}>
+            <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
+              <thead>
+                <tr>
+                  {['Summary', 'Before', 'After', 'Change', 'p'].map((h, i) => (
+                    <th key={h} className={`font-mono text-[10px] uppercase tracking-wider font-medium px-3.5 py-2 ${i === 0 ? 'text-left' : 'text-right'}`}
+                      style={{ color: 'var(--fg-muted)', background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {summary.map((r) => (
+                  <tr key={r.metric}>
+                    <Cell first>{r.metric}</Cell>
+                    <Cell dim>{r.before}</Cell>
+                    <Cell strong>{r.after}</Cell>
+                    <Cell><span style={{ color: 'var(--brand)' }}>{r.delta}</span></Cell>
+                    <Cell dim>{r.p || '—'}</Cell>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <p className="mt-2.5 text-[12.5px] leading-relaxed max-w-[76ch]" style={{ color: 'var(--fg-muted)' }}>
+            Ranking figures are over {EVAL.totals.goldQuestions} hand-labelled questions; significance is a
+            two-sided paired bootstrap with 10,000 resamples. Latency is server-side execution time on the
+            {' '}{EVAL.hnsw.onChunks.toLocaleString()}-chunk repository.
+          </p>
         </header>
 
-        <Section n="01" title="What was measured, and against what">
+        <Section n="1" title="Corpus and ground truth">
           <Lede>
-            RepoMind indexes a repository into 60-line chunks, embeds them, and puts the five nearest chunks into
-            the prompt before the agent starts calling tools. Nothing about that pipeline had a number attached to it.
+            Chunking is fixed 60-line windows with 10 lines of overlap, embedded with
+            <code className="font-mono text-[13px]"> text-embedding-3-small</code>. Retrieval is cosine similarity
+            over those vectors, and the top five chunks are placed in the prompt before the agent runs.
           </Lede>
           <Body>
             The harness runs against the same database the product uses, and the strategies under test call the same
@@ -336,10 +367,11 @@ export default function EvalReport() {
           </div>
         </Section>
 
-        <Section n="02" title="The obvious fix, which did not work">
+        <Section n="2" title="Retriever comparison">
           <Lede>
-            Add a keyword arm, fuse it with the vector ranking, ship the hybrid. It is the standard first move, and the
-            standard justification is that embeddings are bad at exact identifiers. Neither half held here.
+            Eight strategies, scored on the same questions against the same index. The expected result was that
+            adding a keyword arm and fusing the two rankings would beat vector search alone, on the usual argument
+            that embeddings handle exact identifiers poorly. That did not reproduce here.
           </Lede>
           <Table
             head={['Strategy', 'R@1', 'R@5', 'R@10', 'R@20', 'P@5', 'MRR', 'nDCG@10', 'Δ', 'p']}
@@ -372,8 +404,9 @@ export default function EvalReport() {
           </Table>
           <Body>
             Every hybrid configuration scored at or below the vector baseline. Equal-weight fusion was significantly
-            worse: giving a much weaker arm an equal vote lets it displace correct results at rank 1, and R@1 fell
-            from {base.r1.toFixed(3)} to 0.495.
+            worse: giving a much weaker arm an equal vote lets it displace correct results at rank 1, and Recall@1
+            fell from {base.r1.toFixed(3)} to 0.495. Weighting the vector arm 3:1 recovered most of that but did not
+            pass parity.
           </Body>
           <Panel tint="brand">
             <p className="text-[14.5px] leading-relaxed mb-3">
@@ -391,8 +424,11 @@ export default function EvalReport() {
           </Panel>
         </Section>
 
-        <Section n="03" title="Reading the failures instead of the averages">
-          <Lede>Seven questions missed at every k. Lined up, they were not seven separate problems.</Lede>
+        <Section n="3" title="Failure analysis">
+          <Lede>
+            Seven questions retrieved no correct file at any k. Inspecting them individually showed a single shared
+            cause rather than seven unrelated ones.
+          </Lede>
           <div className="rounded-xl border overflow-hidden my-6" style={{ borderColor: 'var(--border)', background: 'var(--border)' }}>
             {FAILURES.map((f) => (
               <div key={f.q} className="p-4" style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
@@ -412,20 +448,20 @@ export default function EvalReport() {
             ))}
           </div>
           <Body>
-            <strong style={{ color: 'var(--fg)' }}>Tests and documentation were crowding out implementation.</strong>{' '}
-            Notice that <code className="font-mono text-[13px]">tree_test.go</code> beat{' '}
+            In each case the retrieved files were tests, documentation or fixtures, and the implementation file was
+            absent. <code className="font-mono text-[13px]">tree_test.go</code> outranked{' '}
             <code className="font-mono text-[13px]">tree.go</code> for the literal name of a function defined in{' '}
             <code className="font-mono text-[13px]">tree.go</code>.
           </Body>
           <Body>
-            This is not an embedding failure. A test <em>describes</em> a behaviour in plainer language than the
-            implementation does, and documentation is written to answer exactly this kind of question — both are
-            legitimately closer to the query. Which means similarity is the wrong <em>final</em> ranking signal, and
-            that makes it fixable after retrieval rather than inside the model.
+            This is expected behaviour from the embedding, not a defect in it. Test files state intent in prose close
+            to how a question is phrased, and documentation is written to answer such questions directly, so both are
+            genuinely nearer the query in vector space. The implication is that similarity is insufficient as the
+            final ranking signal, and that the correction belongs after retrieval rather than in the model.
           </Body>
         </Section>
 
-        <Section n="04" title="A prior on what kind of file it is">
+        <Section n="4" title="Source-kind re-ranking">
           <Lede>
             Retrieve 40 candidates instead of 5. Classify each by path — implementation, test, docs, example, config.
             Multiply non-implementation similarity by 0.9. Re-sort, then cut to 5. Queries that ask <em>for</em> tests
@@ -434,10 +470,9 @@ export default function EvalReport() {
           <BreakdownTabs />
         </Section>
 
-        <Section n="05" title="Catching it overfitting">
+        <Section n="5" title="Held-out validation">
           <Lede>
-            The prior was designed by reading failures in the labelled set — exactly the situation that produces a
-            result which does not survive contact with new data.
+            The weight was chosen by inspecting failures in the labelled set, so the labelled set cannot validate it.
           </Lede>
           <Body>
             So {EVAL.totals.silverQuestions} held-out questions were generated from randomly sampled chunks and scored
@@ -483,10 +518,12 @@ export default function EvalReport() {
           </Body>
         </Section>
 
-        <Section n="06" title="The index that was never there">
+        <Section n="6" title="Vector index">
           <Lede>
-            The chunks table had an index on the repository id and nothing on the embedding column. Every semantic
-            search was an exact sequential scan of every chunk in the repository.
+            <code className="font-mono text-[13px]">code_chunks</code> carried an index on{' '}
+            <code className="font-mono text-[13px]">repo_id</code> and none on{' '}
+            <code className="font-mono text-[13px]">embedding</code>, so every query planned as a sequential scan
+            with a sort.
           </Lede>
           <div className="grid sm:grid-cols-[1fr_auto_1fr] gap-5 items-center my-6">
             <div className="rounded-xl border p-5" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
@@ -510,10 +547,10 @@ export default function EvalReport() {
           </Body>
         </Section>
 
-        <Section n="07" title="What the agent does with it">
+        <Section n="7" title="End-to-end answer quality">
           <Lede>
-            Retrieval metrics say the right file was <em>available</em>. They say nothing about whether the agent used
-            it, cited it correctly, or invented a path.
+            Retrieval metrics establish only that the correct file was available to the model. They do not measure
+            whether it was used, cited accurately, or replaced with a path that does not exist.
           </Lede>
           <Panel tint="warn">
             <p className="text-[14.5px] leading-relaxed">
@@ -549,7 +586,7 @@ export default function EvalReport() {
           </Body>
         </Section>
 
-        <Section n="08" title="What this does not show">
+        <Section n="8" title="Limitations">
           <ul className="space-y-2.5 mt-4 max-w-[72ch]">
             {[
               [`${EVAL.totals.goldQuestions} questions, one labeller`, 'who had read the repositories. Enough to separate a 0.03 effect on a paired test; not a benchmark.'],

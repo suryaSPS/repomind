@@ -15,6 +15,14 @@ import {
   getCommitFromDBMulti,
 } from '@/lib/vector/search'
 import { embedBatch } from '@/lib/ingestion/embedder'
+import { applySourcePrior } from '@/lib/vector/source-prior'
+
+/**
+ * Candidates pulled before the source prior re-ranks them down to `limit`.
+ * Same reasoning as the pre-retrieval path in lib/agent/runtime.ts: the prior
+ * can only promote an implementation chunk that was retrieved to begin with.
+ */
+const PRIOR_POOL = 40
 
 /**
  * All tools read exclusively from the database.
@@ -32,7 +40,8 @@ export function createAgentTools(repoId: number) {
       }),
       execute: async ({ query, limit }: { query: string; limit?: number }) => {
         const [embedding] = await embedBatch([query])
-        const codeResults = await searchCodeChunks(repoId, embedding, limit ?? 6)
+        const candidates = await searchCodeChunks(repoId, embedding, PRIOR_POOL)
+        const codeResults = applySourcePrior(candidates, query, limit ?? 6)
         const commitResults = await searchCommitChunks(repoId, embedding, 3)
 
         const codeFormatted = codeResults.map(
@@ -166,7 +175,8 @@ export function createMultiRepoTools(repoIds: number[], repoNames: Record<number
       }),
       execute: async ({ query, limit }: { query: string; limit?: number }) => {
         const [embedding] = await embedBatch([query])
-        const codeResults = await searchCodeChunksMulti(repoIds, embedding, limit ?? 8)
+        const candidates = await searchCodeChunksMulti(repoIds, embedding, PRIOR_POOL)
+        const codeResults = applySourcePrior(candidates, query, limit ?? 8)
         const commitResults = await searchCommitChunksMulti(repoIds, embedding, 4)
 
         const codeFormatted = codeResults.map(

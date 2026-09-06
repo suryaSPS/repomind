@@ -396,10 +396,9 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
           const isActive = activeRepoId === r.id
           const isSelected = selectedRepos.has(r.id)
           return (
-            <button
+            <div
               key={r.id}
-              onClick={() => compareMode ? toggleRepoSelection(r.id) : onSelectRepo(r.id, r.name)}
-              className="w-full text-left px-3 py-2.5 rounded-xl transition-all group"
+              className="w-full text-left rounded-xl transition-all group"
               style={{
                 background: compareMode
                   ? isSelected ? 'var(--bg-elevated)' : 'transparent'
@@ -421,6 +420,12 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
                 }
               }}
             >
+              <button
+                type="button"
+                onClick={() => compareMode ? toggleRepoSelection(r.id) : onSelectRepo(r.id, r.name)}
+                aria-pressed={compareMode ? isSelected : isActive}
+                className="w-full text-left px-3 py-2.5 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
               <div className="flex items-center gap-2 mb-0.5">
                 {compareMode ? (
                   <span
@@ -448,13 +453,14 @@ export default function Sidebar({ activeRepoId, onSelectRepo, onRestoreSession, 
               <p className="text-xs ml-5 truncate" style={{ color: 'var(--fg-muted)' }}>
                 {r.owner} · {r.fileCount ?? 0}f · {r.commitCount ?? 0}c
               </p>
+              </button>
               {!compareMode && (
-                <div className="ml-5 mt-1.5 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <div className="ml-8 mr-3 pb-2.5 flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
                   <ReIngestButton repoId={r.id} onDone={fetchRepos} />
                   <DeleteRepoButton repoId={r.id} repoName={r.name} onDeleted={fetchRepos} />
                 </div>
               )}
-            </button>
+            </div>
           )
         })}
       </div>

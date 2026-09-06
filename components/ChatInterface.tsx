@@ -5,6 +5,7 @@ import { useChat } from 'ai/react'
 import MessageBubble, { ThinkingIndicator } from './MessageBubble'
 import ExportChatButton from './ExportChatButton'
 import ShortcutHint from './ShortcutHint'
+import QuickStart, { STARTER_QUESTION } from './QuickStart'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 interface ChatInterfaceProps {
@@ -14,6 +15,8 @@ interface ChatInterfaceProps {
   repoNames?: string[]
   username: string
   initialSessionId?: number | null
+  tutorial?: boolean
+  onTutorialEnd?: () => void
 }
 
 const SINGLE_REPO_QUESTIONS = [
@@ -32,7 +35,7 @@ const MULTI_REPO_QUESTIONS = [
   'Which repo has better test coverage?',
 ]
 
-export default function ChatInterface({ repoId, repoName, repoIds, repoNames, username, initialSessionId }: ChatInterfaceProps) {
+export default function ChatInterface({ repoId, repoName, repoIds, repoNames, username, initialSessionId, tutorial = false, onTutorialEnd }: ChatInterfaceProps) {
   const isMultiRepo = repoIds && repoIds.length > 1
   const displayName = isMultiRepo ? repoNames!.join(' + ') : repoName
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -94,11 +97,18 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
     },
   })
 
+  function submitQuestion(e: React.FormEvent) {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+    handleSubmit(e)
+    if (tutorial) onTutorialEnd?.()
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       if (input.trim() && !isLoading) {
-        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
+        submitQuestion(e)
       }
     }
   }
@@ -169,7 +179,7 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
               Trace bugs, explain decisions, find patterns, and onboard in seconds — with cited file and line references.
             </p>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-              {(isMultiRepo ? MULTI_REPO_QUESTIONS : SINGLE_REPO_QUESTIONS).map((q) => (
+              {(tutorial ? [STARTER_QUESTION] : isMultiRepo ? MULTI_REPO_QUESTIONS : SINGLE_REPO_QUESTIONS).map((q) => (
                 <button
                   key={q}
                   onClick={() => applyStarterQuestion(q)}
@@ -248,8 +258,10 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
         className="p-4 border-t"
         style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}
       >
-        <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+        {tutorial && onTutorialEnd && <QuickStart step="question" onSkip={onTutorialEnd} />}
+        <form onSubmit={submitQuestion} className="flex gap-2 items-end">
           <textarea
+            aria-label="Ask a question about this repository"
             ref={textareaRef}
             value={input}
             onChange={handleInputChange}
@@ -269,8 +281,9 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
           />
           <button
             type="submit"
+            aria-label="Send question"
             disabled={isLoading || !input.trim()}
-            className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center transition-all btn-glow"
+            className="h-11 min-w-11 px-3 gap-2 shrink-0 rounded-xl flex items-center justify-center transition-all btn-glow"
             style={{
               background: isLoading || !input.trim()
                 ? 'var(--bg-elevated)'
@@ -280,6 +293,7 @@ export default function ChatInterface({ repoId, repoName, repoIds, repoNames, us
               cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
             }}
           >
+            {tutorial && <span className="text-sm font-semibold">Send</span>}
             {isLoading ? (
               <svg width="14" height="14" viewBox="0 0 20 20" style={{ animation: 'spin 0.9s linear infinite' }}>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

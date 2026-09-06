@@ -7,6 +7,6 @@ export default async function Home() {
   if (!session) return <LandingPage />
 
   return (
-    <MainApp username={session.user?.name ?? 'user'} />
+    <MainApp key={session.user.id} userId={session.user.id} username={session.user?.name ?? 'user'} />
   )
 }

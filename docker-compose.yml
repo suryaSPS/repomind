@@ -1,4 +1,9 @@
-version: '3.8'
+# RepoMind local stack. `docker compose up` builds and runs the whole app;
+# `docker compose up -d db` (the old workflow) still starts just Postgres.
+#
+# Secrets (API keys, NEXTAUTH_SECRET, SEED_USERS) come from .env.local via
+# env_file. DATABASE_URL / NEXTAUTH_URL are overridden per-service below so the
+# containers talk over the Compose network (host `db`, not `localhost`).
 
 services:
   db:
@@ -18,5 +23,46 @@ services:
       timeout: 5s
       retries: 5
 
+  # One-off: enable pgvector, apply Drizzle migrations, seed SEED_USERS, exit.
+  # Uses the `builder` stage because it still has tsx + the source tree.
+  migrate:
+    build:
+      context: .
+      target: builder
+    image: repomind-builder
+    env_file:
+      - .env.local
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/repomind
+    command: npm run db:migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  # The Next.js app (standalone server.js).
+  app:
+    build:
+      context: .
+      target: runner
+    image: repomind-app
+    container_name: repomind-app
+    env_file:
+      - .env.local
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/repomind
+      NEXTAUTH_URL: http://localhost:3000
+    ports:
+      - '3000:3000'
+    volumes:
+      # Persist cloned repos across restarts (matches the host ./data/repos).
+      - repodata:/app/data/repos
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   pgdata:
+  repodata:

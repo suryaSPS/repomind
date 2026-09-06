@@ -5,12 +5,15 @@ import Sidebar from '@/components/Sidebar'
 import RepoInput from '@/components/RepoInput'
 import ChatInterface from '@/components/ChatInterface'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { useQuickStart } from '@/hooks/useQuickStart'
 
 interface MainAppProps {
   username: string
+  userId: string
 }
 
-export default function MainApp({ username }: MainAppProps) {
+export default function MainApp({ username, userId }: MainAppProps) {
+  const tutorial = useQuickStart(userId)
   const [activeRepo, setActiveRepo] = useState<{ id: number; name: string } | null>(null)
   const [multiRepo, setMultiRepo] = useState<{ ids: number[]; names: string[] } | null>(null)
   const [restoredSessionId, setRestoredSessionId] = useState<number | null>(null)
@@ -120,9 +123,11 @@ export default function MainApp({ username }: MainAppProps) {
             repoNames={multiRepo?.names}
             username={username}
             initialSessionId={restoredSessionId}
+            tutorial={tutorial.active}
+            onTutorialEnd={tutorial.finish}
           />
         ) : (
-          <EmptyState onRepoReady={handleRepoReady} />
+          <EmptyState onRepoReady={handleRepoReady} tutorial={tutorial.active} onTutorialEnd={tutorial.finish} onRestartTutorial={tutorial.restart} />
         )}
         </ErrorBoundary>
       </div>
@@ -130,7 +135,7 @@ export default function MainApp({ username }: MainAppProps) {
   )
 }
 
-function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) => void }) {
+function EmptyState({ onRepoReady, tutorial, onTutorialEnd, onRestartTutorial }: { onRepoReady: (id: number, name: string) => void; tutorial: boolean; onTutorialEnd: () => void; onRestartTutorial: () => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 overflow-y-auto">
       <div className="text-center max-w-lg mb-10">
@@ -155,7 +160,8 @@ function EmptyState({ onRepoReady }: { onRepoReady: (id: number, name: string) =
       </div>
 
       <div className="w-full max-w-xl">
-        <RepoInput onRepoReady={onRepoReady} />
+        <RepoInput onRepoReady={onRepoReady} tutorial={tutorial} onTutorialEnd={onTutorialEnd} />
+        {!tutorial && <button type="button" onClick={onRestartTutorial} className="block mx-auto mt-3 min-h-11 px-3 text-sm underline underline-offset-4 rounded-lg focus-visible:outline-2" style={{ color: 'var(--fg-secondary)' }}>Replay quick start</button>}
       </div>
 
       <div className="flex flex-wrap gap-2 justify-center mt-8 max-w-lg">

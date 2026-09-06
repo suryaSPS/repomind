@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import QuickStart from './QuickStart'
 
 interface IngestionProgress {
   stage: string
@@ -12,6 +13,8 @@ interface IngestionProgress {
 
 interface RepoInputProps {
   onRepoReady: (repoId: number, repoName: string) => void
+  tutorial?: boolean
+  onTutorialEnd?: () => void
 }
 
 const STAGE_ICONS: Record<string, string> = {
@@ -23,7 +26,7 @@ const STAGE_ICONS: Record<string, string> = {
   error: '❌',
 }
 
-export default function RepoInput({ onRepoReady }: RepoInputProps) {
+export default function RepoInput({ onRepoReady, tutorial = false, onTutorialEnd }: RepoInputProps) {
   const [url, setUrl] = useState('')
   const [progress, setProgress] = useState<IngestionProgress | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -33,6 +36,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
     if (!url.trim() || isLoading) return
 
     setIsLoading(true)
+    setUrl(url)
     setProgress({ stage: 'Starting…', percent: 0 })
 
     try {
@@ -51,32 +55,35 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
-
-        const text = decoder.decode(value)
-        for (const line of text.split('\n')) {
+        buffer += decoder.decode(value, { stream: !done })
+        const lines = buffer.split('\n')
+        buffer = done ? '' : (lines.pop() ?? '')
+        for (const line of lines) {
           if (line.startsWith('data: ')) {
+            let data: IngestionProgress
             try {
-              const data: IngestionProgress = JSON.parse(line.slice(6))
-              setProgress(data)
+              data = JSON.parse(line.slice(6))
+            } catch { continue }
+            setProgress(data)
 
-              if (data.stage === 'done' && data.repoId) {
-                const name = url.trim().split('/').at(-1) ?? 'repo'
-                setIsLoading(false)
-                onRepoReady(data.repoId, name)
-                return
-              }
+            if (data.stage === 'done' && data.repoId) {
+              const name = new URL(url.trim()).pathname.split('/').filter(Boolean)[1]?.replace(/\.git$/, '') ?? 'repo'
+              setIsLoading(false)
+              onRepoReady(data.repoId, name)
+              return
+            }
 
-              if (data.stage === 'error') {
-                setIsLoading(false)
-                return
-              }
-            } catch { /* skip */ }
+            if (data.stage === 'error') {
+              setIsLoading(false)
+              return
+            }
           }
         }
+        if (done) throw new Error('Indexing stopped before it finished. Please retry.')
       }
     } catch (err) {
       setProgress({
@@ -93,9 +100,11 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
 
   return (
     <div className="w-full">
+      {tutorial && onTutorialEnd && <QuickStart step={isLoading ? 'indexing' : 'search'} onSkip={onTutorialEnd} />}
+      <label htmlFor="repository-url" className="block text-sm font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>GitHub repository URL</label>
       {/* Input row */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 min-w-0">
           {/* GitHub icon */}
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--fg-muted)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -103,6 +112,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
             </svg>
           </span>
           <input
+            id="repository-url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleIngest()}
@@ -127,7 +137,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
             background: isLoading || !url.trim()
               ? 'var(--bg-elevated)'
               : 'var(--brand-gradient)',
-            color: isLoading || !url.trim() ? 'var(--fg-muted)' : 'white',
+            color: isLoading || !url.trim() ? 'var(--fg-muted)' : 'var(--brand-fg)',
             border: 'none',
             cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
           }}
@@ -138,7 +148,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
               Indexing
             </span>
           ) : (
-            'Analyze →'
+            'Search →'
           )}
         </button>
       </div>
@@ -188,6 +198,7 @@ export default function RepoInput({ onRepoReady }: RepoInputProps) {
       {/* Error */}
       {isError && (
         <div
+          role="alert"
           className="mt-3 text-sm flex items-start justify-between gap-3 px-3.5 py-2.5 rounded-xl expand-in"
           style={{
             background: 'var(--error-bg)',

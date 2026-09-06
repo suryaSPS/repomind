@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-09-04T17:12:39.553Z",
+  "judgeModel": "claude-opus-5",
+  "arms": {
+    "dense": {
+      "answers": 54,
+      "graded": 0,
+      "correctness": 0,
+      "correctnessCI": [
+        0,
+        0
+      ],
+      "citationQuality": 0,
+      "correctnessPass": 0,
+      "citedGoldFile": 0.9074074074074074,
+      "citationValidRate": 0.9645061728395061,
+      "hallucinatedPathRate": 0.05555555555555555,
+      "hallucinatedPathsTotal": 6,
+      "citationsPerAnswer": 2.2037037037037037,
+      "toolCalls": 5.7592592592592595,
+      "steps": 5.148148148148148,
+      "promptTokens": 64063.46296296296,
+      "completionTokens": 1818.5,
+      "costPerAnswerUsd": 0.07315596296296298,
+      "latencyP50": 21372.37054100001,
+      "latencyP95": 39702.483666,
+      "errors": 0
+    }
+  },
+  "comparison": {}
+}

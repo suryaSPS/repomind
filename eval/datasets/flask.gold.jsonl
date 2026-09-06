@@ -1,0 +1,27 @@
+{"id":"fl-01","repo":"flask","type":"symbol","question":"Where is the Flask application class actually defined?","relevantFiles":["src/flask/app.py","src/flask/sansio/app.py"]}
+{"id":"fl-02","repo":"flask","type":"concept","question":"How does the framework sign and load the session cookie?","relevantFiles":["src/flask/sessions.py"]}
+{"id":"fl-03","repo":"flask","type":"concept","question":"How does the request context get pushed and popped around a request?","relevantFiles":["src/flask/ctx.py"]}
+{"id":"fl-04","repo":"flask","type":"symbol","question":"Where is url_for implemented?","relevantFiles":["src/flask/helpers.py"]}
+{"id":"fl-05","repo":"flask","type":"concept","question":"How is JSON serialization customised for responses?","relevantFiles":["src/flask/json/provider.py","src/flask/json/__init__.py"]}
+{"id":"fl-06","repo":"flask","type":"concept","question":"How does the command line tool locate the application object to run?","relevantFiles":["src/flask/cli.py"]}
+{"id":"fl-07","repo":"flask","type":"howto","question":"What happens when a blueprint is registered on an application?","relevantFiles":["src/flask/sansio/blueprints.py","src/flask/blueprints.py"]}
+{"id":"fl-08","repo":"flask","type":"symbol","question":"Where do current_app and g come from?","relevantFiles":["src/flask/globals.py"]}
+{"id":"fl-09","repo":"flask","type":"concept","question":"How can configuration be loaded from environment variables or a file?","relevantFiles":["src/flask/config.py"]}
+{"id":"fl-10","repo":"flask","type":"concept","question":"How are Jinja templates found and rendered?","relevantFiles":["src/flask/templating.py"]}
+{"id":"fl-11","repo":"flask","type":"concept","question":"How does the built-in test client simulate requests?","relevantFiles":["src/flask/testing.py"]}
+{"id":"fl-12","repo":"flask","type":"concept","question":"How are async view functions supported?","relevantFiles":["src/flask/app.py"]}
+{"id":"fl-13","repo":"flask","type":"symbol","question":"Where is the class-based view with per-HTTP-method dispatch?","relevantFiles":["src/flask/views.py"]}
+{"id":"fl-14","repo":"flask","type":"concept","question":"Where are the signals like request_started declared?","relevantFiles":["src/flask/signals.py"]}
+{"id":"fl-15","repo":"flask","type":"concept","question":"How are types that JSON cannot represent, like tuples and datetimes, preserved in a session cookie?","relevantFiles":["src/flask/json/tag.py"]}
+{"id":"fl-16","repo":"flask","type":"concept","question":"How does the application logger get set up?","relevantFiles":["src/flask/logging.py"]}
+{"id":"fl-17","repo":"flask","type":"howto","question":"In the tutorial example, how is user registration and login handled?","relevantFiles":["examples/tutorial/flaskr/auth.py"]}
+{"id":"fl-18","repo":"flask","type":"debug","question":"What produces the extra-friendly explanations when something goes wrong in debug mode?","relevantFiles":["src/flask/debughelpers.py"]}
+{"id":"fl-19","repo":"flask","type":"concept","question":"How are the Werkzeug request and response objects subclassed?","relevantFiles":["src/flask/wrappers.py"]}
+{"id":"fl-20","repo":"flask","type":"concept","question":"Where are the type aliases for view callables and error handlers declared?","relevantFiles":["src/flask/typing.py"]}
+{"id":"fl-21","repo":"flask","type":"howto","question":"How does the Celery example wire background tasks into the app?","relevantFiles":["examples/celery/make_celery.py","examples/celery/src/task_app/__init__.py"]}
+{"id":"fl-22","repo":"flask","type":"concept","question":"How does the app factory pattern work in the tutorial, including database setup?","relevantFiles":["examples/tutorial/flaskr/__init__.py","examples/tutorial/flaskr/db.py"]}
+{"id":"fl-x1","repo":"flask","type":"symbol_exact","question":"ensure_sync","relevantFiles":["src/flask/app.py"]}
+{"id":"fl-x2","repo":"flask","type":"symbol_exact","question":"TaggedJSONSerializer","relevantFiles":["src/flask/json/tag.py"]}
+{"id":"fl-x3","repo":"flask","type":"symbol_exact","question":"SecureCookieSessionInterface","relevantFiles":["src/flask/sessions.py"]}
+{"id":"fl-x4","repo":"flask","type":"symbol_exact","question":"DefaultJSONProvider","relevantFiles":["src/flask/json/provider.py"]}
+{"id":"fl-x5","repo":"flask","type":"symbol_exact","question":"MethodView","relevantFiles":["src/flask/views.py"]}

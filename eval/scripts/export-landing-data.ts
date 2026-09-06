@@ -1,0 +1,122 @@
+/**
+ * Emits components/eval-data.ts from the raw evaluation output.
+ *
+ * The landing page quotes a lot of numbers. Typing them by hand guarantees that
+ * one of them eventually disagrees with eval/results/ and nobody notices, so
+ * they are generated instead — re-run this after any evaluation run and the
+ * marketing copy cannot drift from the measurements.
+ *
+ * Run: npx tsx eval/scripts/export-landing-data.ts
+ */
+import '../lib/env'
+import fs from 'fs'
+import path from 'path'
+import { CORPUS } from '../corpus'
+import { loadDataset } from '../lib/dataset'
+
+const RESULTS = path.join(process.cwd(), 'eval', 'results')
+const read = (f: string) => JSON.parse(fs.readFileSync(path.join(RESULTS, f), 'utf-8'))
+
+const gold = read('retrieval.gold.json')
+const silver = read('retrieval.silver.json')
+const sweep = read('prior-sweep.uniform.json')
+const answers = read('answers.summary.json')
+
+/** Display order: baseline first, then what lost, then what won. */
+const ORDER = [
+  ['dense', 'Vector search (previous default)', 'baseline'],
+  ['lexical', 'Keyword search — Postgres FTS', 'tried'],
+  ['bm25', 'Keyword search — BM25', 'tried'],
+  ['hybrid_equal', 'Hybrid, equal-weight fusion', 'tried'],
+  ['hybrid', 'Hybrid, weighted fusion 3:1', 'tried'],
+  ['hybrid_bm25', 'Hybrid, vector + BM25', 'tried'],
+  ['hybrid_prior', 'Hybrid + source-kind re-ranking', 'tried'],
+  ['dense_prior', 'Vector search + source-kind re-ranking', 'shipped'],
+] as const
+
+const n = (x: number, d = 3) => Number(x.toFixed(d))
+
+const retrievers = ORDER.filter(([k]) => gold.retrievers[k]).map(([key, label, state]) => {
+  const r = gold.retrievers[key]
+  const o = r.overall
+  return {
+    key, label, state,
+    ndcg10: n(o['ndcg@10']), ci: [n(r.ndcg10CI[0]), n(r.ndcg10CI[1])] as [number, number],
+    r1: n(o['recall@1']), r3: n(o['recall@3']), r5: n(o['recall@5']),
+    r10: n(o['recall@10']), r20: n(o['recall@20']),
+    p5: n(o['precision@5']), mrr: n(o.mrr), map10: n(o['map@10']),
+    hit10: n(o['hit@10']),
+    p50: n(o.latencyP50, 1), p95: n(o.latencyP95, 1),
+    delta: r.vsBaseline ? n(r.vsBaseline.ndcg10Delta) : null,
+    pValue: r.vsBaseline ? r.vsBaseline.ndcg10P : null,
+  }
+})
+
+const repoKeys = Object.keys(gold.retrievers.dense.byRepo)
+const typeKeys = Object.keys(gold.retrievers.dense.byType)
+
+const slice = (dim: 'byRepo' | 'byType', keys: string[]) =>
+  keys.map((k) => ({
+    key: k,
+    n: gold.retrievers.dense[dim][k].queries,
+    dense: n(gold.retrievers.dense[dim][k]['ndcg@10']),
+    shipped: n(gold.retrievers.dense_prior[dim][k]['ndcg@10']),
+    lexical: n(gold.retrievers.lexical[dim][k]['ndcg@10']),
+    hybrid: n(gold.retrievers.hybrid[dim][k]['ndcg@10']),
+  }))
+
+const goldQs = loadDataset('gold')
+const typeCounts: Record<string, number> = {}
+for (const q of goldQs) typeCounts[q.type] = (typeCounts[q.type] ?? 0) + 1
+
+const out = {
+  generatedAt: new Date().toISOString().slice(0, 10),
+  corpus: CORPUS.map((c) => ({
+    key: c.key, name: `${c.owner}/${c.name}`, language: c.language,
+    files: gold.corpus[c.key]?.files ?? 0, chunks: gold.corpus[c.key]?.chunks ?? 0,
+  })),
+  totals: {
+    files: Object.values(gold.corpus).reduce((a: number, c) => a + (c as { files: number }).files, 0),
+    chunks: Object.values(gold.corpus).reduce((a: number, c) => a + (c as { chunks: number }).chunks, 0),
+    goldQuestions: goldQs.length,
+    silverQuestions: silver.retrievers.dense.overall.queries,
+    retrieversTested: retrievers.length,
+  },
+  typeCounts,
+  retrievers,
+  byRepo: slice('byRepo', repoKeys),
+  byType: slice('byType', typeKeys),
+  sweep: sweep.rows.map((r: Record<string, { value?: number; ndcg10?: number }>) => ({
+    weight: r.testWeight.value!,
+    gold: n(r['gold (all)'].ndcg10!),
+    silverImpl: n(r['silver: impl'].ndcg10!),
+    silverTest: n(r['silver: test'].ndcg10!),
+    silverAll: n(r['silver (all)'].ndcg10!),
+  })),
+  heldOut: {
+    dense: { ndcg10: n(silver.retrievers.dense.overall['ndcg@10']), r10: n(silver.retrievers.dense.overall['recall@10']) },
+    shipped: { ndcg10: n(silver.retrievers.dense_prior.overall['ndcg@10']), r10: n(silver.retrievers.dense_prior.overall['recall@10']) },
+  },
+  hnsw: { exactMs: 153.9, hnswMs: 0.7, speedup: 220, ndcgCost: 0.009, indexSize: '107 MB', onChunks: 12290 },
+  endToEnd: {
+    graded: answers.arms.dense.answers,
+    citedGold: n(answers.arms.dense.citedGoldFile, 3),
+    validRate: n(answers.arms.dense.citationValidRate, 3),
+    badPathRate: n(answers.arms.dense.hallucinatedPathRate, 3),
+    citationsPerAnswer: n(answers.arms.dense.citationsPerAnswer, 1),
+    toolCalls: n(answers.arms.dense.toolCalls, 1),
+    promptTokens: Math.round(answers.arms.dense.promptTokens),
+    costPerAnswer: n(answers.arms.dense.costPerAnswerUsd, 4),
+    latencyP50: n(answers.arms.dense.latencyP50 / 1000, 1),
+  },
+}
+
+const file = path.join(process.cwd(), 'components', 'eval-data.ts')
+fs.writeFileSync(file, `/**
+ * Generated by eval/scripts/export-landing-data.ts — do not edit by hand.
+ * Source of truth is eval/results/*.json. Re-run the exporter after any
+ * evaluation run so the landing page cannot drift from the measurements.
+ */
+export const EVAL = ${JSON.stringify(out, null, 2)} as const
+`)
+console.log(`→ components/eval-data.ts (${retrievers.length} retrievers, ${out.totals.goldQuestions} gold questions)`)
